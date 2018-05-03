@@ -1,0 +1,606 @@
+<?php
+require_once(dirname(__FILE__).'/../common/bbbfly_MIME.php');
+require_once(dirname(__FILE__).'/../environment/bbbfly_Arguments.php');
+
+abstract class bbbfly_RPC
+{
+  const METHOD_GET = 'GET';
+  const METHOD_PUT = 'PUT';
+  const METHOD_POST = 'POST';
+  const METHOD_OPTIONS = 'OPTIONS';
+
+  const CHARSET_UTF8 = 'UTF-8';
+  const CHARSET_W1250 = 'windows-1250';
+
+  const OUTPUT_TEXT = 0;
+  const OUTPUT_JSON = 1;
+  const OUTPUT_HTML = 2;
+  const OUTPUT_XML = 3;
+  const OUTPUT_PDF = 4;
+  const OUTPUT_FILE = 5;
+  const OUTPUT_ZIP_FILE = 6;
+  const OUTPUT_PDF_FILE = 7;
+  const OUTPUT_JAVASCRIPT = 8;
+
+  const RPC_ERROR_NONE = 0;
+  const RPC_ERROR_MISSING_EXTENSION = 1000;
+  const RPC_ERROR_INVALID_PARAMS = 1001;
+  const RPC_ERROR_PROCESS = 1002;
+
+  protected static $_Options = array(
+    'cache','buffer','charset','origins',
+    'outputType','outputMime','outputCharset','lateOutput',
+    'fileName','fileChunkSize','xSendFile',
+    'paramsCharset','paramRules'
+  );
+
+  private $_cache = false;
+  private $_buffer = true;
+  private $_charset = null;
+  private $_origins = array();
+
+  private $_outputType = null;
+  private $_outputMime = null;
+  private $_outputCharset = null;
+  private $_lateOutput = false;
+
+  private $_fileName = null;
+  private $_fileChunkSize = 1024;
+  private $_xSendFile = false;
+
+  private $_paramsCharset = null;
+  private $_paramRules = array();
+
+  private $_Method = null;
+  private $_HTTP = false;
+  private $_IFrame = false;
+  private $_Upload = false;
+
+  private $_ErrorCode = null;
+  private $_ErrorMessage = null;
+
+  private $_Params = array();
+  private $_Headers = array();
+  private $_ResponseData = null;
+
+  function __construct($options=null,$process=true){
+    $this->detectRequestProperties();
+
+    $this->riseError(self::RPC_ERROR_NONE);
+
+    $this->charset = self::CHARSET_UTF8;
+    $this->paramsCharset = self::CHARSET_UTF8;
+    $this->outputCharset = self::CHARSET_UTF8;
+    $this->outputType = self::OUTPUT_TEXT;
+
+    $this->setOptions($options);
+    $this->getRequestParams();
+    if($process){$this->process();}
+  }
+
+  public function __get($propName){
+    switch($propName){
+      case 'cache': return $this->_cache;
+      case 'buffer': return $this->_buffer;
+      case 'charset': return $this->_charset;
+      case 'origins': return $this->_origins;
+
+      case 'outputType': return $this->_outputType;
+      case 'outputMime': return $this->_outputMime;
+      case 'outputCharset': return $this->_outputCharset;
+      case 'lateOutput': return $this->_lateOutput;
+
+      case 'fileName': return $this->_fileName;
+      case 'fileChunkSize': return $this->_fileChunkSize;
+      case 'xSendFile': return $this->_xSendFile;
+
+      case 'paramsCharset': return $this->_paramsCharset;
+      case 'paramRules': return $this->_paramRules;
+
+      case 'Method': return $this->_Method;
+      case 'HTTP': return $this->_HTTP;
+      case 'IFrame': return $this->_IFrame;
+      case 'Upload': return $this->_Upload;
+      case 'Options': return self::$_Options;
+
+      case 'ErrorCode': return $this->_ErrorCode;
+      case 'ErrorMessage': return $this->_ErrorMessage;
+    }
+  }
+
+  public function __set($propName,$value){
+    switch($propName){
+      case 'cache': if(is_bool($value) || is_int($value)){$this->_cache = $value;} break;
+      case 'buffer': if(is_bool($value)){$this->_buffer = $value;} break;
+      case 'charset': if(is_string($value)){$this->_charset = $value;} break;
+      case 'origins': if(is_array($value)){$this->_origins = $value;} break;
+
+      case 'outputType': if(is_int($value)){$this->setOutputType($value);} break;
+      case 'outputMime': if(is_string($value)){$this->_outputMime = $value;} break;
+      case 'outputCharset': if(is_string($value)){$this->_outputCharset = $value;} break;
+      case 'lateOutput': if(is_bool($value)){$this->_lateOutput = $value;} break;
+
+      case 'fileName': if(is_string($value)){$this->_fileName = $value;} break;
+      case 'fileChunkSize': if(is_int($value)){$this->_fileChunkSize = $value;} break;
+      case 'xSendFile': if(is_bool($value)){$this->_xSendFile = $value;} break;
+
+      case 'paramsCharset': if(is_string($value)){$this->_paramsCharset = $value;} break;
+      case 'paramRules': if(is_array($value)){$this->_paramRules = $value;} break;
+    }
+  }
+
+  public function setOptions($options){
+    if(is_array($options)){
+      foreach($this->Options as $name){
+        if(isset($options[$name])){$this->$name = $options[$name];}
+      }
+    }
+    return $this;
+  }
+
+  protected function riseError($code,$message=null,$exception=null){
+    if(is_int($code)){$this->_ErrorCode = $code;}
+    if(is_string($message) || is_null($message)){
+      $this->_ErrorMessage = $message;
+    }
+
+    if($exception){
+      if($exception instanceof Exception){
+        error_log($exception->getMessage());
+      }
+      elseif(is_string($exception)){
+        error_log($exception);
+      }
+    }
+  }
+
+  public function isParam($paramName){
+    return (is_string($paramName) && isset($this->_Params[$paramName]));
+  }
+
+  public function getParam($paramName){
+    return ($this->isParam($paramName)) ? $this->_Params[$paramName] : null;
+  }
+
+  public function allParams(){
+    if(func_num_args() < 1){return false;}
+    foreach(func_get_args() as $paramName){
+      if(!$this->isParam($paramName)){return false;}
+    }
+    return true;
+  }
+
+  public function anyParam(){
+    if(func_num_args() < 1){return false;}
+    foreach(func_get_args() as $paramName){
+      if($this->isParam($paramName)){return true;}
+    }
+    return false;
+  }
+
+  protected function detectRequestProperties(){
+    $this->_Method = $_SERVER['REQUEST_METHOD'];
+
+    if((isset($_SERVER['HTTP_RPC'])) && ($_SERVER['HTTP_RPC'] === '1')){
+      $this->_HTTP = true;
+    }
+
+    switch($this->Method){
+      case self::METHOD_PUT:
+        $this->_Upload = true;
+      break;
+      case self::METHOD_POST:
+        if(!$this->HTTP){$this->_IFrame = true;}
+        if(count($_FILES) > 0){$this->_Upload = true;}
+      break;
+    }
+  }
+
+  public function setOutputType($outputType){
+    switch($outputType){
+      case self::OUTPUT_TEXT: $this->outputMime = bbbfly_MIME::TEXT; break;
+      case self::OUTPUT_JSON: $this->outputMime = bbbfly_MIME::JSON; break;
+      case self::OUTPUT_HTML: $this->outputMime = bbbfly_MIME::HTML; break;
+      case self::OUTPUT_XML: $this->outputMime = bbbfly_MIME::XML; break;
+      case self::OUTPUT_PDF: $this->outputMime = bbbfly_MIME::PDF; break;
+      case self::OUTPUT_FILE: $this->outputMime = bbbfly_MIME::BIN; break;
+      case self::OUTPUT_ZIP_FILE: $this->outputMime = bbbfly_MIME::ZIP; break;
+      case self::OUTPUT_PDF_FILE: $this->outputMime = bbbfly_MIME::PDF; break;
+      case self::OUTPUT_JAVASCRIPT:
+        if(($this->IFrame)){$this->outputMime = bbbfly_MIME::HTML;}
+        else{$this->outputMime = bbbfly_MIME::JAVASCRIPT;}
+      break;
+      default: return;
+    }
+
+    $this->_outputType = $outputType;
+  }
+
+  protected function addHeaders($headers){
+    if(is_array($headers)){
+      $this->_Headers = array_merge($this->_Headers,$headers);
+    }
+  }
+
+  protected function setResponseData($data){
+    $this->_ResponseData = $data;
+  }
+
+  protected function getRequestParams(){
+    $params = array();
+    switch(PHP_SAPI){
+      case 'cli':
+        $params = bbbfly_Arguments::getAll();
+      break;
+      default:
+        if($this->Upload){$params =& $_GET;}
+        elseif($this->IFrame){$params =& $_POST;}
+        elseif($this->Method === self::METHOD_POST){$params =& $_POST;}
+        else{$params =& $_GET;}
+
+        if(count($params) > 0){
+          foreach($params as &$param){
+            $param = $this->decodePHPParam($param);
+          }
+		  unset($param);
+        }
+
+      break;
+    }
+    $this->_Params = $params;
+  }
+
+  protected function decodePHPParam($param){
+    if(is_string($param) && ($param !== '')){
+      if(get_magic_quotes_gpc()){$param = stripslashes($param);}
+
+      if($this->paramsCharset !== $this->charset){
+        if(extension_loaded('iconv')){
+          $param = iconv($this->paramsCharset,$this->charset,$param);
+        }
+        else{
+          $this->riseError(self::RPC_ERROR_MISSING_EXTENSION,'iconv');
+        }
+      }
+    }
+    return $param;
+  }
+
+  protected function validateParams(){
+    $valid = true;
+
+    foreach($this->paramRules as $paramName => $rules){
+      if(!is_array($rules)){continue;}
+
+      $param = null;
+      if(isset($this->_Params[$paramName])){
+        $param =& $this->_Params[$paramName];
+      }
+      $rules = array_fill_keys($rules,true);
+
+      if(!is_string($param)){
+        if(isset($rules['require']) && $rules['require']){$valid = false;}
+      }
+      elseif($param === ''){
+        if(isset($rules['not_empty']) && $rules['not_empty']){$valid = false;}
+      }
+      else{
+        $arrayDelimiter = null;
+        foreach($rules as $rule => $apply){
+          if(!$apply){continue;}
+
+          if(is_string($rule) && (substr($rule,0,5) === 'array')){
+            $arrayDelimiter = substr($rule,6,-1);
+          }
+        }
+        $valid = $this->validateParamType($param,$rules,$arrayDelimiter);
+      }
+
+      if(!$valid){
+        $this->invalidateParam($paramName);
+        break;
+      }
+
+      unset($param);
+    }
+
+    return $valid;
+  }
+
+  protected function validateParamType($param,$type,$arrayDelimiter=null){
+    if(is_string($type)){$type = array($type => true);}
+
+    $pattern = null;
+    if(isset($type['boolean'])){$pattern = '[0,1]';}
+    elseif(isset($type['integer'])){$pattern = '[-+]?[0-9]+';}
+    elseif(isset($type['+integer'])){$pattern = '[+]?[0-9]+';}
+    elseif(isset($type['-integer'])){$pattern = '[-][0-9]+';}
+    elseif(isset($type['float'])){$pattern = '[-+]?[0-9]*\.?[0-9]+';}
+    elseif(isset($type['+float'])){$pattern = '[+]?[0-9]*\.?[0-9]+';}
+    elseif(isset($type['-float'])){$pattern = '[-][0-9]*\.?[0-9]+';}
+
+    if($pattern){
+      if(is_string($arrayDelimiter)){
+        $pattern = $pattern.'('.$arrayDelimiter.$pattern.')*';
+      }
+      return (bool)preg_match('~^'.$pattern.'$~',$param);
+    }
+
+    return true;
+  }
+
+  protected function invalidateParam($paramName,$exception=null){
+    if(!is_string($paramName) && !is_array($paramName)){return;}
+
+    $this->riseError(
+      self::RPC_ERROR_INVALID_PARAMS,
+      is_string($paramName) ? $paramName : json_encode($paramName),
+      $exception
+    );
+  }
+
+  protected function setCacheHeaders(){
+    $expiresTS = time();
+    if($this->cache){
+      if(is_int($this->cache)){$expiresTS += $this->cache;}
+      else{$expiresTS = PHP_INT_MAX;}
+
+      $this->addHeaders(array(
+        'Cache-Control' => 'public',
+        'Pragma' => 'cache'
+      ));
+    }
+    else{
+      $expiresTS = 0;
+      $this->addHeaders(array(
+        'Cache-Control' => array('no-cache','must-revalidate'),
+        'Pragma' => 'no-cache'
+      ));
+    }
+
+    if($expiresTS > PHP_INT_MAX){$expiresTS = PHP_INT_MAX;}
+
+    $this->addHeaders(array(
+      'Last-Modified' => gmdate('D, d M Y H:i:s').' GMT',
+      'Expires' => gmdate('D, d M Y H:i:s',$expiresTS).' GMT'
+    ));
+  }
+
+  protected function setOptionsHeaders(){
+    if($this->Method !== self::METHOD_OPTIONS){return;}
+
+    if(isset($_SERVER['HTTP_ORIGIN'])){
+      $allow = ($_SERVER['HTTP_ORIGIN'] === $_SERVER['SERVER_NAME']);
+
+      if(!$allow){
+        foreach($this->origins as $origin){
+          if($_SERVER['HTTP_ORIGIN'] === $origin){
+            $allow = true;
+            break;
+          }
+        }
+      }
+
+      if($allow){
+        $this->addHeaders(array(
+          'Access-Control-Allow-Origin' => $_SERVER['HTTP_ORIGIN'],
+          'Access-Control-Allow-Headers' => array('Origin','Accept','Content-Type'),
+          'Access-Control-Allow-Methods' => array(
+            self::METHOD_GET,
+            self::METHOD_PUT,
+            self::METHOD_POST,
+            self::METHOD_OPTIONS
+          )
+        ));
+      }
+    }
+  }
+
+  protected function setResultHeaders(){
+    if($this->Method === self::METHOD_OPTIONS){return;}
+
+    switch($this->outputType){
+      case self::OUTPUT_FILE:
+      case self::OUTPUT_PDF_FILE:
+      case self::OUTPUT_ZIP_FILE:
+        $this->addHeaders(array(
+          'Content-Transfer-Encoding' => 'Binary',
+          'Connection' => 'Keep-Alive'
+        ));
+      break;
+    }
+
+    $this->addHeaders(array(
+      'Content-Type' => $this->outputMime.'; charset='.$this->outputCharset
+    ));
+  }
+
+  protected function outputHeaders(){
+    if(headers_sent()){return;}
+
+    foreach($this->_Headers as $name => $value){
+      $header = '';
+      if(is_string($value)){$header .= $value;}
+      elseif(is_array($value)){$header .= join(',',$value);}
+      else{continue;}
+      header($name.': '.$header);
+    }
+  }
+
+  protected function validateOutput(){
+    switch($this->outputType){
+      case self::OUTPUT_JSON:
+        if(!$this->HTTP){
+          header('HTTP/1.0 400 Bad Request',true,400);
+          return false;
+        }
+      break;
+    }
+    return true;
+  }
+
+  public function process($options=null){
+    $this->setOptions($options);
+    if(!$this->validateOutput()){return;}
+
+    $this->setCacheHeaders();
+    $this->setOptionsHeaders();
+
+    if($this->Method === self::METHOD_OPTIONS){
+      ob_start();
+      $this->outputHeaders();
+      ob_flush();
+      return;
+    }
+
+    if($this->lateOutput){
+      $this->beforeProcessRPC();
+      $this->processRPC();
+      $this->setResultHeaders();
+      $this->startOutput();
+      $this->afterProcessRPC();
+      $this->endOutput();
+    }
+    else{
+      $this->setResultHeaders();
+      $this->startOutput();
+      $this->beforeProcessRPC();
+      $this->processRPC();
+      $this->afterProcessRPC();
+      $this->endOutput();
+    }
+  }
+
+  protected function startOutput(){
+    ob_start();
+    $this->outputHeaders();
+
+    if(!$this->canBuffer()){
+      ini_set('zlib.output_compression','Off');
+      ini_set('output_buffering ','0');
+      ini_set('implicit_flush','1');
+
+      ob_end_flush();
+      ob_implicit_flush(true);
+    }
+
+    if($this->outputType === self::OUTPUT_JAVASCRIPT){
+      if($this->IFrame){
+        print('<!doctype html>'.PHP_EOL
+          .'<html><body>'.PHP_EOL
+          .'<script type="text/javascript">'.PHP_EOL
+        );
+      }
+      if(!$this->HTTP){print('(function() {'.PHP_EOL);}
+    }
+  }
+
+  protected function endOutput(){
+    if($this->outputType === self::OUTPUT_JAVASCRIPT){
+      if(!$this->HTTP){print('})();'.PHP_EOL);}
+      if($this->IFrame){print('</script>'.PHP_EOL.'</body></html>'.PHP_EOL);}
+    }
+
+    if($this->canBuffer()){ob_flush();}
+  }
+
+  protected function canBuffer(){
+    switch($this->outputType){
+      case self::OUTPUT_FILE:
+      case self::OUTPUT_ZIP_FILE:
+      case self::OUTPUT_PDF_FILE:
+        return true;
+    }
+    return $this->buffer;
+  }
+
+  protected function beforeProcessRPC(){
+    $this->validateParams();
+  }
+
+  protected function processRPC(){
+    if($this->ErrorCode === self::RPC_ERROR_NONE){
+      try{
+        $this->doProcessRPC($this->_Params);
+      }
+      catch(Exception $e){
+        $this->riseError(self::RPC_ERROR_PROCESS,null,$e);
+      }
+    }
+  }
+
+  protected function afterProcessRPC(){
+    $this->output($this->_ResponseData);
+  }
+
+  protected function output(&$outputData){
+    if($outputData){
+      switch($this->outputType){
+        case self::OUTPUT_TEXT:
+        case self::OUTPUT_JAVASCRIPT:
+        case self::OUTPUT_JSON:
+          if(is_array($outputData) || is_object($outputData)){
+            print json_encode($outputData);
+          }
+          else{
+            print strval($outputData);
+          }
+        break;
+        case self::OUTPUT_HTML:
+          if(is_string($outputData)){
+            print $outputData;
+          }
+          elseif(is_a($outputData,'DOMDocument')){
+            print $outputData->saveHTML();
+          }
+        break;
+        case self::OUTPUT_XML:
+        case self::OUTPUT_PDF:
+          if(is_string($outputData)){
+            print $outputData;
+          }
+          elseif(is_a($outputData,'SimpleXMLElement')){
+            print $outputData->asXML();
+          }
+        break;
+        case self::OUTPUT_FILE:
+        case self::OUTPUT_ZIP_FILE:
+        case self::OUTPUT_PDF_FILE:
+          $this->outputFile($outputData);
+        break;
+      }
+    }
+  }
+
+  protected function outputFile($filePath){
+    if(is_string($filePath) && is_file($filePath)){
+      if(!headers_sent()){
+        $fileName = $this->fileName;
+        if(!is_string($fileName)){$fileName = basename($filePath);}
+
+        header('Content-Disposition: attachment; filename='.$fileName);
+        header('Content-Length:'.filesize($filePath));
+
+        if($this->xSendFile){
+          header('X-Sendfile: '.$filePath);
+          return;
+        }
+      }
+
+      set_time_limit(0);
+      $file = fopen($filePath,'rb');
+
+      if($file){
+        while(!feof($file)){
+          print(fread($file,$this->fileChunkSize));
+          ob_flush();
+          flush();
+        }
+        fclose($file);
+      }
+    }
+  }
+
+  abstract protected function doProcessRPC($params);
+}
+

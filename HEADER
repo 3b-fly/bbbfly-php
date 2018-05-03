@@ -1,0 +1,8 @@
+<?php
+/*!
+ * @author <%= pkg.author.name %> <%= pkg.author.email %>
+ * @copyright <%= pkg.author.name %>
+ * @version <%= pkg.version %>
+ * @license <%= pkg.license %>
+*/
+?>
