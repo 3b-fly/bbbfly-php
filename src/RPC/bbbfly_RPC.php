@@ -594,18 +594,24 @@ abstract class bbbfly_RPC
   }
 
   protected function outputFile($filePath){
-    if(is_string($filePath) && is_file($filePath)){
-      if(!headers_sent()){
-        $fileName = $this->fileName;
-        if(!is_string($fileName)){$fileName = basename($filePath);}
+    if(headers_sent()){return;}
 
-        header('Content-Disposition: attachment; filename='.$fileName);
-        header('Content-Length:'.filesize($filePath));
+    if($this->ErrorCode !== self::RPC_ERROR_NONE){
+      header($_SERVER['SERVER_PROTOCOL'].' 500 Internal Server Error');
+    }
+    elseif(!is_string($filePath) || !is_file($filePath)){
+      header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found');
+    }
+    else{
+      $fileName = $this->fileName;
+      if(!is_string($fileName)){$fileName = basename($filePath);}
 
-        if($this->xSendFile){
-          header('X-Sendfile: '.$filePath);
-          return;
-        }
+      header('Content-Disposition: attachment; filename='.$fileName);
+      header('Content-Length:'.filesize($filePath));
+
+      if($this->xSendFile){
+        header('X-Sendfile: '.$filePath);
+        return;
       }
 
       set_time_limit(0);
