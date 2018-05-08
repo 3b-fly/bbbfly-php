@@ -284,24 +284,15 @@ abstract class bbbfly_RPC
       if(isset($this->_Params[$paramName])){
         $param =& $this->_Params[$paramName];
       }
-      $rules = array_fill_keys($rules,true);
 
       if(!is_string($param)){
-        if(isset($rules['require']) && $rules['require']){$valid = false;}
+        if(in_array('require',$rules)){$valid = false;}
       }
       elseif($param === ''){
-        if(isset($rules['not_empty']) && $rules['not_empty']){$valid = false;}
+        if(in_array('not_empty',$rules)){$valid = false;}
       }
       else{
-        $arrayDelimiter = null;
-        foreach($rules as $rule => $apply){
-          if(!$apply){continue;}
-
-          if(is_string($rule) && (substr($rule,0,5) === 'array')){
-            $arrayDelimiter = substr($rule,6,-1);
-          }
-        }
-        $valid = $this->validateParamType($param,$rules,$arrayDelimiter);
+        $valid = $this->validateParamType($param,$rules);
       }
 
       if(!$valid){
@@ -315,22 +306,52 @@ abstract class bbbfly_RPC
     return $valid;
   }
 
-  protected function validateParamType($param,$type,$arrayDelimiter=null){
-    if(is_string($type)){$type = array($type => true);}
+  protected function validateParamType($param,$rules){
+    if(is_string($rules)){$rules = array($rules => true);}
 
     $pattern = null;
-    if(isset($type['boolean'])){$pattern = '[0,1]';}
-    elseif(isset($type['integer'])){$pattern = '[-+]?[0-9]+';}
-    elseif(isset($type['+integer'])){$pattern = '[+]?[0-9]+';}
-    elseif(isset($type['-integer'])){$pattern = '[-][0-9]+';}
-    elseif(isset($type['float'])){$pattern = '[-+]?[0-9]*\.?[0-9]+';}
-    elseif(isset($type['+float'])){$pattern = '[+]?[0-9]*\.?[0-9]+';}
-    elseif(isset($type['-float'])){$pattern = '[-][0-9]*\.?[0-9]+';}
+    $delimiter = null;
 
-    if($pattern){
-      if(is_string($arrayDelimiter)){
-        $pattern = $pattern.'('.$arrayDelimiter.$pattern.')*';
+    foreach($rules as $rule){
+      if(!is_string($rule)){continue;}
+
+      if(substr($rule,0,5) === 'array'){
+        $delimiter = substr($rule,6,-1);
       }
+      elseif(substr($rule,0,4) === 'enum'){
+        $pattern = str_replace(
+          array(
+            '+','*','?','\\',
+            '(',')','{','}','[',']',
+            '$','^','~'
+          ),
+          array(
+            '\+','\*','\?','\\\\',
+            '\(','\)','\{','\}','\[','\]',
+            '\$','\^','\~'
+          ),
+          substr($rule,5,-1)
+        );
+      }
+      else{
+        switch($rule){
+          case 'boolean': $pattern = '[0,1]'; break;
+          case 'integer': $pattern = '[-+]?[0-9]+'; break;
+          case '+integer': $pattern = '[+]?[0-9]+'; break;
+          case '-integer': $pattern = '[-][0-9]+'; break;
+          case 'float': $pattern = '[-+]?[0-9]*\.?[0-9]+'; break;
+          case '+float': $pattern = '[+]?[0-9]*\.?[0-9]+'; break;
+          case '-float': $pattern = '[-][0-9]*\.?[0-9]+'; break;
+        }
+      }
+    }
+
+    if(is_string($delimiter)){
+      if(!is_string($pattern)){$pattern = '.*';}
+      $pattern = "($pattern)($delimiter($pattern))*";
+    }
+
+    if(is_string($pattern)){
       return (bool)preg_match('~^'.$pattern.'$~',$param);
     }
 
