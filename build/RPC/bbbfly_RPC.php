@@ -26,9 +26,7 @@ abstract class bbbfly_RPC
   const OUTPUT_XML = 3;
   const OUTPUT_PDF = 4;
   const OUTPUT_FILE = 5;
-  const OUTPUT_ZIP_FILE = 6;
-  const OUTPUT_PDF_FILE = 7;
-  const OUTPUT_JAVASCRIPT = 8;
+  const OUTPUT_JAVASCRIPT = 6;
 
   const RPC_ERROR_NONE = 0;
   const RPC_ERROR_MISSING_EXTENSION = 1000;
@@ -38,7 +36,7 @@ abstract class bbbfly_RPC
   protected static $_Options = array(
     'cache','buffer','charset','origins',
     'outputType','outputMime','outputCharset','lateOutput',
-    'fileName','fileChunkSize','xSendFile',
+    'outputFile','fileName','fileChunkSize','xSendFile',
     'paramsCharset','paramRules'
   );
 
@@ -52,6 +50,7 @@ abstract class bbbfly_RPC
   private $_outputCharset = null;
   private $_lateOutput = false;
 
+  private $_outputFile = false;
   private $_fileName = null;
   private $_fileChunkSize = 1024;
   private $_xSendFile = false;
@@ -98,6 +97,7 @@ abstract class bbbfly_RPC
       case 'outputCharset': return $this->_outputCharset;
       case 'lateOutput': return $this->_lateOutput;
 
+      case 'outputFile': return $this->_outputFile;
       case 'fileName': return $this->_fileName;
       case 'fileChunkSize': return $this->_fileChunkSize;
       case 'xSendFile': return $this->_xSendFile;
@@ -128,6 +128,7 @@ abstract class bbbfly_RPC
       case 'outputCharset': if(is_string($value)){$this->_outputCharset = $value;} break;
       case 'lateOutput': if(is_bool($value)){$this->_lateOutput = $value;} break;
 
+      case 'outputFile': if(is_bool($value)){$this->_outputFile = $value;} break;
       case 'fileName': if(is_string($value)){$this->_fileName = $value;} break;
       case 'fileChunkSize': if(is_int($value)){$this->_fileChunkSize = $value;} break;
       case 'xSendFile': if(is_bool($value)){$this->_xSendFile = $value;} break;
@@ -205,23 +206,30 @@ abstract class bbbfly_RPC
   }
 
   public function setOutputType($outputType){
+    $outputMime = null;
+    $outputFile = false;
+
     switch($outputType){
-      case self::OUTPUT_TEXT: $this->outputMime = bbbfly_MIME::TEXT; break;
-      case self::OUTPUT_JSON: $this->outputMime = bbbfly_MIME::JSON; break;
-      case self::OUTPUT_HTML: $this->outputMime = bbbfly_MIME::HTML; break;
-      case self::OUTPUT_XML: $this->outputMime = bbbfly_MIME::XML; break;
-      case self::OUTPUT_PDF: $this->outputMime = bbbfly_MIME::PDF; break;
-      case self::OUTPUT_FILE: $this->outputMime = bbbfly_MIME::BIN; break;
-      case self::OUTPUT_ZIP_FILE: $this->outputMime = bbbfly_MIME::ZIP; break;
-      case self::OUTPUT_PDF_FILE: $this->outputMime = bbbfly_MIME::PDF; break;
+      case self::OUTPUT_TEXT: $outputMime = bbbfly_MIME::TEXT; break;
+      case self::OUTPUT_JSON: $outputMime = bbbfly_MIME::JSON; break;
+      case self::OUTPUT_HTML: $outputMime = bbbfly_MIME::HTML; break;
+      case self::OUTPUT_XML: $outputMime = bbbfly_MIME::XML; break;
+      case self::OUTPUT_PDF: $outputMime = bbbfly_MIME::PDF; break;
+      case self::OUTPUT_FILE:
+        $outputMime = bbbfly_MIME::BIN;
+        $outputFile = true;
+      break;
+
       case self::OUTPUT_JAVASCRIPT:
-        if(($this->IFrame)){$this->outputMime = bbbfly_MIME::HTML;}
-        else{$this->outputMime = bbbfly_MIME::JAVASCRIPT;}
+        if(($this->IFrame)){$mime = bbbfly_MIME::HTML;}
+        else{$mime = bbbfly_MIME::JAVASCRIPT;}
       break;
       default: return;
     }
 
     $this->_outputType = $outputType;
+    $this->outputMime = $outputMime;
+    $this->outputFile = $outputFile;
   }
 
   protected function addHeaders($headers){
@@ -428,15 +436,11 @@ abstract class bbbfly_RPC
   protected function setResultHeaders(){
     if($this->Method === self::METHOD_OPTIONS){return;}
 
-    switch($this->outputType){
-      case self::OUTPUT_FILE:
-      case self::OUTPUT_PDF_FILE:
-      case self::OUTPUT_ZIP_FILE:
-        $this->addHeaders(array(
-          'Content-Transfer-Encoding' => 'Binary',
-          'Connection' => 'Keep-Alive'
-        ));
-      break;
+    if($this->outputFile){
+      $this->addHeaders(array(
+        'Content-Transfer-Encoding' => 'Binary',
+        'Connection' => 'Keep-Alive'
+      ));
     }
 
     $this->addHeaders(array(
@@ -534,13 +538,7 @@ abstract class bbbfly_RPC
   }
 
   protected function canBuffer(){
-    switch($this->outputType){
-      case self::OUTPUT_FILE:
-      case self::OUTPUT_ZIP_FILE:
-      case self::OUTPUT_PDF_FILE:
-        return true;
-    }
-    return $this->buffer;
+    return ($this->outputFile) ? true : $this->buffer;
   }
 
   protected function beforeProcessRPC(){
@@ -563,76 +561,109 @@ abstract class bbbfly_RPC
   }
 
   protected function output(&$outputData){
-    if($outputData){
-      switch($this->outputType){
-        case self::OUTPUT_TEXT:
-        case self::OUTPUT_JAVASCRIPT:
-        case self::OUTPUT_JSON:
-          if(is_array($outputData) || is_object($outputData)){
-            print json_encode($outputData);
-          }
-          else{
-            print strval($outputData);
-          }
-        break;
-        case self::OUTPUT_HTML:
-          if(is_string($outputData)){
-            print $outputData;
-          }
-          elseif(is_a($outputData,'DOMDocument')){
-            print $outputData->saveHTML();
-          }
-        break;
-        case self::OUTPUT_XML:
-        case self::OUTPUT_PDF:
-          if(is_string($outputData)){
-            print $outputData;
-          }
-          elseif(is_a($outputData,'SimpleXMLElement')){
-            print $outputData->asXML();
-          }
-        break;
-        case self::OUTPUT_FILE:
-        case self::OUTPUT_ZIP_FILE:
-        case self::OUTPUT_PDF_FILE:
-          $this->outputFile($outputData);
-        break;
+    $output = $this->outputToString($outputData);
+
+    if($this->outputFile){
+      if(headers_sent()){return;}
+
+      if($this->ErrorCode !== self::RPC_ERROR_NONE){
+        header($_SERVER['SERVER_PROTOCOL'].' 500 Internal Server Error');
       }
+      elseif(!is_string($output)){
+        header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found');
+      }
+      elseif($this->outputType === self::OUTPUT_FILE){
+        $this->outputBinFile($output);
+      }
+      else{
+        $this->outputAsFile($output);
+      }
+    }
+    elseif(is_string($output)){
+      print $output;
     }
   }
 
-  protected function outputFile($filePath){
+  protected function outputToString(&$outputData){
+    switch($this->outputType){
+      case self::OUTPUT_TEXT:
+      case self::OUTPUT_JAVASCRIPT:
+      case self::OUTPUT_JSON:
+        if(is_array($outputData) || is_object($outputData)){
+          return json_encode($outputData);
+        }
+        else{
+          return strval($outputData);
+        }
+      break;
+      case self::OUTPUT_HTML:
+        if(is_string($outputData)){
+          return $outputData;
+        }
+        elseif(is_a($outputData,'DOMDocument')){
+          return $outputData->saveHTML();
+        }
+      break;
+      case self::OUTPUT_XML:
+      case self::OUTPUT_PDF:
+        if(is_string($outputData)){
+          return $outputData;
+        }
+        elseif(is_a($outputData,'SimpleXMLElement')){
+          return $outputData->asXML();
+        }
+      break;
+      case self::OUTPUT_FILE:
+        if(is_string($outputData) && is_file($outputData)){
+          return $outputData;
+        }
+      break;
+    }
+    return null;
+  }
+
+  protected function outputBinFile($filePath){
     if(headers_sent()){return;}
 
-    if($this->ErrorCode !== self::RPC_ERROR_NONE){
-      header($_SERVER['SERVER_PROTOCOL'].' 500 Internal Server Error');
+    $fileName = $this->fileName;
+    if(!is_string($fileName)){$fileName = basename($filePath);}
+
+    header('Content-Disposition: attachment; filename='.$fileName);
+    header('Content-Length:'.filesize($filePath));
+
+    if($this->xSendFile){
+      header('X-Sendfile: '.$filePath);
+      return;
     }
-    elseif(!is_string($filePath) || !is_file($filePath)){
-      header($_SERVER['SERVER_PROTOCOL'].' 404 Not Found');
+
+    set_time_limit(0);
+    $file = fopen($filePath,'rb');
+
+    if($file){
+      while(!feof($file)){
+        print(fread($file,$this->fileChunkSize));
+        ob_flush();
+        flush();
+      }
+      fclose($file);
     }
-    else{
-      $fileName = $this->fileName;
-      if(!is_string($fileName)){$fileName = basename($filePath);}
+  }
 
-      header('Content-Disposition: attachment; filename='.$fileName);
-      header('Content-Length:'.filesize($filePath));
+  protected function outputAsFile($fileData){
+    if(headers_sent()){return;}
 
-      if($this->xSendFile){
-        header('X-Sendfile: '.$filePath);
-        return;
-      }
+    $fileName = $this->fileName;
+    if(!is_string($fileName)){$fileName = 'file';}
+    if(!is_string($fileData)){$fileData = '';}
 
-      set_time_limit(0);
-      $file = fopen($filePath,'rb');
+    header('Content-Disposition: attachment; filename='.$fileName);
+    header('Content-Length:'.strlen($fileData));
 
-      if($file){
-        while(!feof($file)){
-          print(fread($file,$this->fileChunkSize));
-          ob_flush();
-          flush();
-        }
-        fclose($file);
-      }
+    set_time_limit(0);
+    foreach(str_split($fileData,$this->fileChunkSize) as $chunk){
+      print($chunk);
+      ob_flush();
+      flush();
     }
   }
 
