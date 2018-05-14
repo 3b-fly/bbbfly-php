@@ -24,6 +24,9 @@ class bbbfly_Require
     if(class_exists('bbbfly_Config',false)){
       self::setOptions(bbbfly_Config::get('Require'));
     }
+    else{
+      throw new Exception('Missing "bbbfly_Config" class.');
+    }
   }
 
   public static function setOptions($options){
