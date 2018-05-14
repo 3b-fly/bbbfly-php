@@ -24,6 +24,8 @@ This project is not stable nor documented yet
   - `bbbfly_geoPHP` - _geoPHP extension with geometry collection support._
 - **controlsjs**
   - `bbbfly_CookieSettings` - _Converts Controls.js cookie settings to client settings._
+- **app**
+  - `bbbfly_AppLoader` - _Server side for [bbbfly.AppLoader](https://3b-fly.github.io/bbbfly-cjs/bbbfly.AppLoader.html) class._
 <br/>
 <br/>
 
