@@ -167,8 +167,9 @@ abstract class bbbfly_RPC
     return (is_string($paramName) && isset($this->_Params[$paramName]));
   }
 
-  public function getParam($paramName){
-    return ($this->isParam($paramName)) ? $this->_Params[$paramName] : null;
+  public function getParam($paramName,$defVal=null){
+    error_log('defVal: '.var_export($defVal,true));
+    return ($this->isParam($paramName)) ? $this->_Params[$paramName] : $defVal;
   }
 
   public function allParams(){
