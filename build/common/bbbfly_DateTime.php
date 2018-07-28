@@ -11,6 +11,10 @@ class bbbfly_DateTime extends DateTime
 {
   const BI_CALENDAR_GREGORIAN = 1;
 
+  public function __construct($time='now'){
+    parent::__construct($time,new DateTimeZone('UTC'));
+  }
+
   public function setBigInt($biString){
     if(!is_string($biString)){return false;}
 
