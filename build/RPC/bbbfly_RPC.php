@@ -548,7 +548,7 @@ abstract class bbbfly_RPC
   protected function processRPC(){
     if($this->ErrorCode === self::RPC_ERROR_NONE){
       try{
-        $this->doProcessRPC($this->_Params);
+        $this->doProcessRPC();
       }
       catch(Exception $e){
         $this->riseError(self::RPC_ERROR_PROCESS,null,$e);
@@ -667,6 +667,6 @@ abstract class bbbfly_RPC
     }
   }
 
-  abstract protected function doProcessRPC($params);
+  abstract protected function doProcessRPC();
 }
 
