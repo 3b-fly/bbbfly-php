@@ -73,6 +73,7 @@ abstract class bbbfly_RPC_DB extends bbbfly_RPC
       );
 
       if($db && $db->IsConnected()){
+        $db->SetTransactionMode('REPEATABLE READ');
         $db->SetFetchMode(ADODB_FETCH_ASSOC);
       }
       else{
