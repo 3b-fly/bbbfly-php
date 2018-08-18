@@ -49,7 +49,7 @@
             $connection = ADONewConnection($type);
             $connection->debug = $debug;
 
-            if(is_int($port)){$db->port=$port;}
+            if(is_int($port)){$connection->port=$port;}
             if($persist){$connection->PConnect($srvr,$user,$pass,$db);}
             else{$connection->Connect($srvr,$user,$pass,$db);}
 
