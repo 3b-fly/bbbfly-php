@@ -53,8 +53,7 @@
             if($persist){$connection->PConnect($srvr,$user,$pass,$db);}
             else{$connection->Connect($srvr,$user,$pass,$db);}
 
-            $connection->Execute("SET NAMES \"$charset\"");
-            $connection->Execute("SET CHARACTER SET $charset");
+            $connection->SetCharSet($charset);
           break;
 
           case self::TYPE_ORACLE:
