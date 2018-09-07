@@ -314,7 +314,7 @@ class bbbfly_Upload
     foreach(scandir($this->uploadDir) as $file){
 
       $matches = null;
-      $pattern = '~^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})_.+_\d+$~';
+      $pattern = '~^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})_.+_\d+_[a-zA-Z0-9]+$~';
       if(!preg_match($pattern,$file,$matches)){continue;}
 
       $errorLevel = error_reporting(0);
