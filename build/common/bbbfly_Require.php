@@ -28,9 +28,9 @@ class bbbfly_Require
 
   private function __construct(){}
 
-  public static function useConfig(){
+  public static function useConfig($key='Require',$alias='default'){
     if(class_exists('bbbfly_Config',false)){
-      self::setOptions(bbbfly_Config::get('Require'));
+      self::setOptions(bbbfly_Config::get($key,$alias));
     }
     else{
       throw new Exception('Missing "bbbfly_Config" class.');

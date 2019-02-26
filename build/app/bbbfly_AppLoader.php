@@ -32,9 +32,9 @@ class bbbfly_AppLoader
     $this->setOptions($options);
   }
 
-  public function useConfig(){
+  public function useConfig($key='App.Loader',$alias='default'){
     if(class_exists('bbbfly_Config',false)){
-      self::setOptions(bbbfly_Config::get('App.Loader'));
+      self::setOptions(bbbfly_Config::get($key,$alias));
     }
     else{
       throw new Exception('Missing "bbbfly_Config" class.');
