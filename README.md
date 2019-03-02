@@ -25,7 +25,9 @@ This project is not stable nor documented yet
 - **controlsjs**
   - `bbbfly_CookieSettings` - _Converts Controls.js cookie settings to client settings._
 - **app**
+  - `bbbfly_AppIndex` - _Server side for Controls.js application._
   - `bbbfly_AppLoader` - _Server side for [bbbfly.AppLoader](https://3b-fly.github.io/bbbfly-cjs/bbbfly.AppLoader.html) class._
+  - `bbbfly_AppLibrarian` - _Class for parsing Controls.js library and application JSON files._
 <br/>
 <br/>
 
