@@ -1,0 +1,270 @@
+<?php
+class bbbfly_AppLibrarian
+{
+  const DEF_FILENAME_APP = 'controls-app.json';
+  const DEF_FILENAME_LIB = 'controls.json';
+
+  protected static $appDir = null;
+  protected static $appDef = null;
+
+  protected static $libDefs = array();
+  protected static $errors = array();
+
+  private function __construct(){}
+
+  protected static function clear(){
+    self::$appDir = null;
+    self::$appDef = null;
+
+    self::$libDefs = array();
+    self::$errors = array();
+  }
+
+  protected static function libOpts($id,$version){
+    $obj = new stdClass();
+    $obj->id = is_string($id) ? $id : '';
+    $obj->version = is_string($version) ? $version : '';
+    return $obj;
+  }
+
+  public static function loadApp($path){
+    self::clear();
+
+    //load application definition
+    $def = self::loadAppDef($path);
+    if(!is_array($def)){return false;}
+
+    //require all libraries
+    if(is_array($def['Libraries'])){
+      foreach($def['Libraries'] as $libId => $libDef){
+
+        if(is_array($libDef) && isset($libDef['Version'])){
+          $lib = self::libOpts($libId,$libDef['Version']);
+          self::loadLib($lib,'application');
+        }
+      }
+    }
+
+    return (count(self::$errors) < 1);
+  }
+
+  protected static function loadLib($lib,$parent){
+    //get current version
+    $def = self::currentLib($lib,$parent);
+    if(!is_null($def)){return $def;}
+
+    //load library definition
+    $def = self::loadLibDef($lib,$parent);
+    if(!is_array($def)){return $def;}
+
+    //require all libraries on which it depends on
+    if(is_array($def['RequiredLibraries'])){
+      foreach($def['RequiredLibraries'] as $reqId => $reqVersion){
+        $reqLib = self::libOpts($reqId,$reqVersion);
+        self::loadLib($reqLib,$lib);
+      }
+    }
+  }
+
+  protected static function loadAppDef($path){
+    $def = self::loadDef($path,self::DEF_FILENAME_APP);
+    if(!is_array($def)){
+      return self::riseError(
+        bbbfly_AppLibrarian_Error::ERROR_APP_DEF,
+        array('path' => $path)
+      );
+    }
+
+    self::$appDir = $path;
+    self::$appDef =& $def;
+    return $def;
+  }
+
+  protected static function loadLibDef($lib,$parent){
+    //get library path
+    $path = self::libPath($lib->id,$lib->version);
+    if(!is_string($path)){
+      return self::riseError(
+        bbbfly_AppLibrarian_Error::ERROR_LIB_PATH,
+        array('parent' => $parent,'lib' => $lib)
+      );
+    }
+
+    //get definition
+    $def = self::loadDef($path,self::DEF_FILENAME_LIB);
+    if(!is_array($def)){
+      return self::riseError(
+        bbbfly_AppLibrarian_Error::ERROR_LIB_DEF,
+        array('parent' => $parent,'lib' => $lib,'path' => $path)
+      );
+    }
+
+    //validate definition
+    $defLib = self::libOpts($def['Lib'],$def['Version']);
+    if(($lib->id !== $defLib->id) || ($lib->version !== $defLib->version)){
+      return self::riseError(
+        bbbfly_AppLibrarian_Error::ERROR_LIB_INVALID,
+        array('parent' => $parent,'required' => $lib,'real' => $defLib)
+      );
+    }
+
+    //store definition
+    self::$libDefs[$lib->id] =& $def;
+    return $def;
+  }
+
+  protected static function currentLib($lib,$parent){
+    if(is_array(self::$libDefs[$lib->id])){
+
+      $current =& self::$libDefs[$lib->id];
+      $currentLib = self::libOpts($current['Lib'],$current['Version']);
+
+      if($lib->version !== $currentLib->version){
+        return self::riseError(
+          bbbfly_AppLibrarian_Error::ERROR_LIB_CONFLICT,
+          array('parent' => $parent,'lib' => $lib,'current' => $currentLib)
+        );
+      }
+      return $current;
+    }
+    return null;
+  }
+
+  protected static function loadDef($path,$file){
+    $path = self::dirPath($path);
+
+    if(is_string($path) && is_string($file)){
+      $def = null;
+      $jsonPath = $path.$file;
+      $altJsonPath = $path.'_'.$file;
+
+      if(is_file($jsonPath)){
+        $def = file_get_contents($jsonPath);
+      }
+      elseif(is_file($altJsonPath)){
+        $def = file_get_contents($altJsonPath);
+      }
+
+      if(is_string($def)){
+        $def = json_decode($def,true);
+        if(is_array($def)){return $def;}
+      }
+    }
+    return null;
+  }
+
+  protected static function libPath($id,$version){
+    if(!is_array(self::$appDef)){return null;}
+    $appDef =& self::$appDef;
+
+    if(
+      is_array($appDef['Libraries'])
+      && is_array($appDef['Libraries'][$id])
+    ){
+      $libDef =& $appDef['Libraries'][$id];
+      $libVer = isset($libDef['Version']) ? $libDef['Version'] : '';
+      if($libVer !== $version){return null;}
+
+      $path = '';
+      if(is_string(self::$appDir)){$path .= self::$appDir;}
+      if(is_string($appDef['LibsPath'])){$path .= $appDef['LibsPath'];}
+      if(is_string($libDef['Path'])){$path .= $libDef['Path'];}
+
+      return self::dirPath($path);
+    }
+    return null;
+  }
+
+  protected static function dirPath($path){
+    if(is_string($path)){
+      $dirPath = str_replace(array('\\','/'),DIRECTORY_SEPARATOR,$path);
+      $dirPath = realpath($dirPath);
+
+      if(is_string($dirPath) && is_dir($dirPath)){
+        return $dirPath.DIRECTORY_SEPARATOR;
+      }
+    }
+    return null;
+  }
+
+  protected static function filePath($path){
+    if(is_string($path)){
+      $filePath = str_replace(array('\\','/'),DIRECTORY_SEPARATOR,$path);
+      $filePath = realpath($filePath);
+
+      if(is_string($filePath) && is_file($filePath)){
+        return $filePath;
+      }
+    }
+    return null;
+  }
+
+  protected static function riseError($code,$options=null,$throw=false){
+    $error = new bbbfly_AppLibrarian_Error($code,$options);
+
+    self::$errors[] = $error;
+    if($throw){throw $error;}
+    return $error;
+  }
+
+  public static function getErrors(){
+    $errors = array();
+    foreach(self::$errors as $error){
+      if($error instanceof bbbfly_AppLibrarian_Error){
+        $errors[] = $error->export();
+      }
+    }
+    return $errors;
+  }
+
+  public static function logErrors(){
+    $errors = self::getErrors();
+    foreach($errors as $error){
+      error_log($error);
+    }
+  }
+}
+
+class bbbfly_AppLibrarian_Error extends Exception
+{
+  const ERROR_APP_DEF = 101;
+  const ERROR_LIB_PATH = 201;
+  const ERROR_LIB_DEF = 202;
+  const ERROR_LIB_CONFLICT = 203;
+  const ERROR_LIB_INVALID = 204;
+
+  protected $options = null;
+
+  public function __construct($code,$options){
+    parent::__construct(null,$code);
+    if(is_object($options)){$this->options = $options;}
+  }
+
+  public function export(){
+    $message = '[bbbfly_AppLibrarian_Error]:';
+
+    switch($this->getCode()){
+      case self::ERROR_APP_DEF:
+        $message .= ' No valid definition in application path.';
+      break;
+      case self::ERROR_LIB_PATH:
+        $message .= ' Invalid or missing library path.';
+      break;
+      case self::ERROR_LIB_DEF:
+        $message .= ' No valid definition in library path.';
+      break;
+      case self::ERROR_LIB_CONFLICT:
+        $message .= ' Different versions of the same library in use.';
+      break;
+      case self::ERROR_LIB_INVALID:
+        $message .= ' Required library ID or version does not match.';
+      break;
+    }
+
+    if(is_array($this->options) || is_object($this->options)){
+      $message .= ' '.json_encode((object)$this->options);
+    }
+
+    return $message;
+  }
+}
