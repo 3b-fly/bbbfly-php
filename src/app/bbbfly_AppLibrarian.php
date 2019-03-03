@@ -90,7 +90,7 @@ class bbbfly_AppLibrarian
 
   protected static function loadLibDef($lib,$parent){
     //get library path
-    $path = self::libPath($lib->id,$lib->version);
+    $path = self::serverLibPath($lib->id,$lib->version);
     if(!is_string($path)){
       return self::riseError(
         bbbfly_AppLibrarian_Error::ERROR_LIB_PATH,
@@ -161,7 +161,7 @@ class bbbfly_AppLibrarian
     return null;
   }
 
-  protected static function libPath($id,$version){
+  protected static function serverLibPath($id,$version){
     if(!is_array(self::$appDef)){return null;}
     $appDef =& self::$appDef;
 
@@ -179,6 +179,21 @@ class bbbfly_AppLibrarian
       if(is_string($libDef['Path'])){$path .= $libDef['Path'];}
 
       return self::serverDirPath($path);
+    }
+    return null;
+  }
+
+  protected static function getAppLibDef($libId){
+    return self::getMemberDef(self::$appDef,'Libraries',$libId);
+  }
+
+  protected static function getMemberDef(&$def,$holder,$memberId){
+    if(
+      is_array($def)
+      && is_array($def[$holder])
+      && is_array($def[$holder][$memberId])
+    ){
+      return $def[$holder][$memberId];
     }
     return null;
   }
