@@ -67,6 +67,23 @@ class bbbfly_AppLibrarian
     return !self::hasErrors();
   }
 
+  public static function exportLibPaths($libsPath){
+    self::clearErrors();
+    $paths = array();
+
+    if(is_array(self::$appDef) && is_array(self::$appDef['Libraries'])){
+      $libsPath = is_string($libsPath) ? $libsPath.'/' : '';
+
+      foreach(self::$appDef['Libraries'] as $libId => $libDef){
+        if(is_array($libDef) && is_string($libDef['Path'])){
+          $path = self::clintPath($libsPath.'/'.$libDef['Path']);
+          $paths[$libId] = $path;
+        }
+      }
+    }
+    return $paths;
+  }
+
   public static function exportLibFilePaths($libs=null,$debug=false){
     self::clearErrors();
     $parent = null;
