@@ -95,22 +95,22 @@ class bbbfly_AppLibrarian
         array('parent' => $parent,'lib' => $lib)
       );
     }
-    $def = self::loadDef($path,self::DEF_FILENAME_LIB);
-    if(!is_array($def)){
+    $libDef = self::loadDef($path,self::DEF_FILENAME_LIB);
+    if(!is_array($libDef)){
       return self::riseError(
         bbbfly_AppLibrarian_Error::ERROR_LIB_DEF,
         array('parent' => $parent,'lib' => $lib,'path' => $path)
       );
     }
-    $defLib = self::libOpts($def['Lib'],$def['Version']);
-    if(($lib->id !== $defLib->id) || ($lib->version !== $defLib->version)){
+    $realLib = self::libOpts($libDef['Lib'],$libDef['Version']);
+    if(($lib->id !== $realLib->id) || ($lib->version !== $realLib->version)){
       return self::riseError(
         bbbfly_AppLibrarian_Error::ERROR_LIB_INVALID,
-        array('parent' => $parent,'required' => $lib,'real' => $defLib)
+        array('parent' => $parent,'required' => $lib,'real' => $realLib)
       );
     }
-    self::$libDefs[$lib->id] =& $def;
-    return $def;
+    self::$libDefs[$lib->id] =& $libDef;
+    return $libDef;
   }
 
   protected static function currentLib($lib,$parent){
@@ -171,7 +171,7 @@ class bbbfly_AppLibrarian
       if(is_string($libDef['Path'])){$path .= $libDef['Path'];}
 
       return self::dirPath($path);
-          }
+    }
     return null;
   }
 
