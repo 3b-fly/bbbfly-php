@@ -33,6 +33,13 @@ class bbbfly_AppLibrarian
     return $obj;
   }
 
+  protected static function pkgOpts($id,$libId){
+    $obj = new stdClass();
+    $obj->id = is_string($id) ? $id : '';
+    $obj->lib = is_string($libId) ? $libId : '';
+    return $obj;
+  }
+
   public static function loadApp($path){
     self::clear();
 
@@ -54,6 +61,51 @@ class bbbfly_AppLibrarian
 
     if(self::$logErrors){self::logErrors();}
     return !self::hasErrors();
+  }
+
+  public static function exportLibFilePaths($libs=null,$debug=false){
+    self::clearErrors();
+    $parent = null;
+
+    //use default libraries
+    if(is_null($libs)){
+      if(is_array(self::$appDef) && is_array(self::$appDef['Libraries'])){
+        $libs =& self::$appDef['Libraries'];
+        $parent = 'application';
+      }
+    }
+
+    //get required packages
+    $pkgLibs = array();
+    self::addPackages($pkgLibs,$libs,$parent);
+
+    //get paths
+    $paths = array();
+    foreach($pkgLibs as $libId => $pkgs){
+      if(count($pkgs) < 1){continue;}
+
+      $libPaths = array();
+      foreach($pkgs as $pkgDef){
+        if(is_array($pkgDef['Files'])){
+          self::addPackagePaths($libPaths,$pkgDef['Files']);
+        }
+        if($debug){
+          if(is_array($pkgDef['DebugFiles'])){
+            self::addPackagePaths($libPaths,$pkgDef['DebugFiles']);
+          }
+        }
+        else{
+          if(is_array($pkgDef['ReleaseFiles'])){
+            self::addPackagePaths($libPaths,$pkgDef['ReleaseFiles']);
+          }
+        }
+      }
+      $paths[$libId] =& $libPaths;
+      unset($libPaths);
+    }
+
+    if(self::$logErrors){self::logErrors();}
+    return self::hasErrors() ? null : $paths;
   }
 
   protected static function loadLib($lib,$parent){
@@ -204,6 +256,56 @@ class bbbfly_AppLibrarian
     return null;
   }
 
+  protected static function addPackages(&$stack,&$libs,$parent){
+    if(!is_array($libs) || !is_array($stack)){return;}
+
+    foreach($libs as $libId => $libDef){
+      if(is_array($libDef) && is_array($libDef['Packages'])){
+
+        foreach($libDef['Packages'] as $pkgId){
+          if(!self::getMemberDef($stack,$libId,$pkgId)){
+            $pkg = self::pkgOpts($pkgId,$libId);
+            self::addPackage($stack,$pkg,$parent);
+          }
+        }
+      }
+    }
+  }
+
+  protected static function addPackage(&$stack,$pkg,$parent){
+    $pkgDef =& self::getPackageDef($pkg);
+
+    if(!is_array($pkgDef)){
+      self::riseError(
+        bbbfly_AppLibrarian_Error::ERROR_PKG_INVALID,
+        array('parent' => $parent,'pkg' => $pkg)
+      );
+    }
+
+    if(!is_array($stack[$pkg->lib])){$stack[$pkg->lib] = array();}
+    $stack[$pkg->lib][$pkg->id] =& $pkgDef;
+
+    if(is_array($pkgDef['Libraries'])){
+      self:: addPackages($stack,$pkgDef['Libraries'],$pkg);
+    }
+  }
+
+  protected static function getPackageDef($pkg){
+    if(is_array(self::$libDefs[$pkg->lib])){
+      $libDef =& self::$libDefs[$pkg->lib];
+      return self::getMemberDef($libDef,'Packages',$pkg->id);
+    }
+    return null;
+  }
+
+  protected static function addPackagePaths(&$stack,&$files){
+    if(is_array($stack) && is_array($files)){
+      foreach($files as $filePath){
+        $stack[] = self::clintPath($filePath);
+      }
+    }
+  }
+
   protected static function serverDirPath($path){
     if(is_string($path)){
       $dirPath = realpath(self::serverPath($path));
@@ -281,6 +383,7 @@ class bbbfly_AppLibrarian_Error extends Exception
   const ERROR_LIB_DEF = 203;
   const ERROR_LIB_CONFLICT = 204;
   const ERROR_LIB_INVALID = 205;
+  const ERROR_PKG_INVALID = 206;
 
   protected $options = null;
 
@@ -310,6 +413,9 @@ class bbbfly_AppLibrarian_Error extends Exception
       break;
       case self::ERROR_LIB_INVALID:
         $message .= ' Required library ID or version does not match.';
+      break;
+      case self::ERROR_PKG_INVALID:
+        $message .= ' Unknown package required.';
       break;
     }
 
