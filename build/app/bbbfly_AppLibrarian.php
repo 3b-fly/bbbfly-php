@@ -88,7 +88,25 @@ class bbbfly_AppLibrarian
   }
 
   protected static function loadLibDef($lib,$parent){
-    $path = self::serverLibPath($lib->id,$lib->version);
+    $appLibDef =& self::getAppLibDef($lib->id);
+
+    if(is_array($appLibDef)){
+      $libVer = isset($appLibDef['Version']) ? $appLibDef['Version'] : '';
+      if($lib->version !== $libVer){$appLibDef = null;}
+    }
+
+    if(!is_array($appLibDef)){
+      return self::riseError(
+        bbbfly_AppLibrarian_Error::ERROR_LIB,
+        array('parent' => $parent,'lib' => $lib)
+      );
+    }
+
+    $path = null;
+    if(is_string($appLibDef['Path'])){
+      $path = self::serverLibPath($appLibDef['Path']);
+    }
+
     if(!is_string($path)){
       return self::riseError(
         bbbfly_AppLibrarian_Error::ERROR_LIB_PATH,
@@ -153,26 +171,14 @@ class bbbfly_AppLibrarian
     return null;
   }
 
-  protected static function serverLibPath($id,$version){
-    if(!is_array(self::$appDef)){return null;}
+  protected static function serverLibPath($path){
+    if(!is_string($path) || !is_array(self::$appDef)){return null;}
     $appDef =& self::$appDef;
 
-    if(
-      is_array($appDef['Libraries'])
-      && is_array($appDef['Libraries'][$id])
-    ){
-      $libDef =& $appDef['Libraries'][$id];
-      $libVer = isset($libDef['Version']) ? $libDef['Version'] : '';
-      if($libVer !== $version){return null;}
-
-      $path = '';
-      if(is_string(self::$appDir)){$path .= self::$appDir;}
-      if(is_string($appDef['LibsPath'])){$path .= $appDef['LibsPath'];}
-      if(is_string($libDef['Path'])){$path .= $libDef['Path'];}
-
-      return self::serverDirPath($path);
-    }
-    return null;
+    $libPath = '';
+    if(is_string(self::$appDir)){$libPath .= self::$appDir;}
+    if(is_string($appDef['LibsPath'])){$libPath .= $appDef['LibsPath'];}
+    return self::serverDirPath($libPath.$path);
   }
 
   protected static function getAppLibDef($libId){
@@ -262,10 +268,11 @@ class bbbfly_AppLibrarian
 class bbbfly_AppLibrarian_Error extends Exception
 {
   const ERROR_APP_DEF = 101;
-  const ERROR_LIB_PATH = 201;
-  const ERROR_LIB_DEF = 202;
-  const ERROR_LIB_CONFLICT = 203;
-  const ERROR_LIB_INVALID = 204;
+  const ERROR_LIB = 201;
+  const ERROR_LIB_PATH = 202;
+  const ERROR_LIB_DEF = 203;
+  const ERROR_LIB_CONFLICT = 204;
+  const ERROR_LIB_INVALID = 205;
 
   protected $options = null;
 
@@ -280,6 +287,9 @@ class bbbfly_AppLibrarian_Error extends Exception
     switch($this->getCode()){
       case self::ERROR_APP_DEF:
         $message .= ' No valid definition in application path.';
+      break;
+      case self::ERROR_LIB:
+        $message .= ' Required library is not defined.';
       break;
       case self::ERROR_LIB_PATH:
         $message .= ' Invalid or missing library path.';
