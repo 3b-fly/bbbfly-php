@@ -131,7 +131,7 @@ class bbbfly_AppLibrarian
   }
 
   protected static function loadDef($path,$file){
-    $path = self::dirPath($path);
+    $path = self::serverDirPath($path);
 
     if(is_string($path) && is_string($file)){
       $def = null;
@@ -170,15 +170,14 @@ class bbbfly_AppLibrarian
       if(is_string($appDef['LibsPath'])){$path .= $appDef['LibsPath'];}
       if(is_string($libDef['Path'])){$path .= $libDef['Path'];}
 
-      return self::dirPath($path);
+      return self::serverDirPath($path);
     }
     return null;
   }
 
-  protected static function dirPath($path){
+  protected static function serverDirPath($path){
     if(is_string($path)){
-      $dirPath = str_replace(array('\\','/'),DIRECTORY_SEPARATOR,$path);
-      $dirPath = realpath($dirPath);
+      $dirPath = realpath(self::serverPath($path));
 
       if(is_string($dirPath) && is_dir($dirPath)){
         return $dirPath.DIRECTORY_SEPARATOR;
@@ -187,16 +186,32 @@ class bbbfly_AppLibrarian
     return null;
   }
 
-  protected static function filePath($path){
+  protected static function serverFilePath($path){
     if(is_string($path)){
-      $filePath = str_replace(array('\\','/'),DIRECTORY_SEPARATOR,$path);
-      $filePath = realpath($filePath);
+      $filePath = realpath(self::serverPath($filePath));
 
       if(is_string($filePath) && is_file($filePath)){
         return $filePath;
       }
     }
     return null;
+  }
+
+  protected static function serverPath($path){
+    if(is_string($path)){
+      $path = str_replace(
+        array('\\','/'),DIRECTORY_SEPARATOR,$path
+      );
+    }
+    return $path;
+  }
+
+  protected static function clintPath($path){
+    if(is_string($path)){
+      $path = str_replace('\\','/',$path);
+      $path = preg_replace('/\/+/', '/',$path);
+    }
+    return $path;
   }
 
   protected static function riseError($code,$options=null,$throw=false){
