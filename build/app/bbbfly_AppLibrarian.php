@@ -12,6 +12,8 @@ class bbbfly_AppLibrarian
   const DEF_FILENAME_APP = 'controls-app.json';
   const DEF_FILENAME_LIB = 'controls.json';
 
+  protected static $logErrors = true;
+
   protected static $appDir = null;
   protected static $appDef = null;
 
@@ -23,8 +25,12 @@ class bbbfly_AppLibrarian
   protected static function clear(){
     self::$appDir = null;
     self::$appDef = null;
-
     self::$libDefs = array();
+
+    self::clearErrors();
+  }
+
+  protected static function clearErrors(){
     self::$errors = array();
   }
 
@@ -38,18 +44,20 @@ class bbbfly_AppLibrarian
   public static function loadApp($path){
     self::clear();
     $def = self::loadAppDef($path);
-    if(!is_array($def)){return false;}
-    if(is_array($def['Libraries'])){
-      foreach($def['Libraries'] as $libId => $libDef){
+    if(is_array($def)){
+      if(is_array($def['Libraries'])){
+        foreach($def['Libraries'] as $libId => $libDef){
 
-        if(is_array($libDef) && isset($libDef['Version'])){
-          $lib = self::libOpts($libId,$libDef['Version']);
-          self::loadLib($lib,'application');
+          if(is_array($libDef) && isset($libDef['Version'])){
+            $lib = self::libOpts($libId,$libDef['Version']);
+            self::loadLib($lib,'application');
+          }
         }
       }
     }
 
-    return (count(self::$errors) < 1);
+    if(self::$logErrors){self::logErrors();}
+    return !self::hasErrors();
   }
 
   protected static function loadLib($lib,$parent){
@@ -163,7 +171,7 @@ class bbbfly_AppLibrarian
       if(is_string($libDef['Path'])){$path .= $libDef['Path'];}
 
       return self::dirPath($path);
-    }
+          }
     return null;
   }
 
@@ -199,7 +207,11 @@ class bbbfly_AppLibrarian
     return $error;
   }
 
-  public static function getErrors(){
+  protected static function hasErrors(){
+    return (count(self::$errors) > 0);
+  }
+
+  protected static function getErrors(){
     $errors = array();
     foreach(self::$errors as $error){
       if($error instanceof bbbfly_AppLibrarian_Error){
@@ -209,7 +221,7 @@ class bbbfly_AppLibrarian
     return $errors;
   }
 
-  public static function logErrors(){
+  protected static function logErrors(){
     $errors = self::getErrors();
     foreach($errors as $error){
       error_log($error);
@@ -229,7 +241,7 @@ class bbbfly_AppLibrarian_Error extends Exception
 
   public function __construct($code,$options){
     parent::__construct(null,$code);
-    if(is_object($options)){$this->options = $options;}
+    $this->options =& $options;
   }
 
   public function export(){
