@@ -276,7 +276,7 @@ class bbbfly_AppLibrarian
   }
 
   protected static function addPackage(&$stack,$pkg,$parent){
-    $pkgDef =& self::getPackageDef($pkg);
+    $pkgDef = self::getPackageDef($pkg);
 
     if(!is_array($pkgDef)){
       self::riseError(
