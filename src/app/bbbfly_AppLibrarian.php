@@ -48,7 +48,7 @@ class bbbfly_AppLibrarian
 
     //require all libraries
     if(is_array($def)){
-      if(is_array($def['Libraries'])){
+      if(isset($def['Libraries']) && is_array($def['Libraries'])){
         foreach($def['Libraries'] as $libId => $libDef){
 
           if(is_array($libDef) && isset($libDef['Version'])){
@@ -86,7 +86,11 @@ class bbbfly_AppLibrarian
 
     //use default libraries
     if(is_null($libs)){
-      if(is_array(self::$appDef) && is_array(self::$appDef['Libraries'])){
+      if(
+        is_array(self::$appDef)
+        && isset(self::$appDef['Libraries'])
+        && is_array(self::$appDef['Libraries'])
+      ){
         $libs =& self::$appDef['Libraries'];
         $parent = 'application';
       }
@@ -103,16 +107,23 @@ class bbbfly_AppLibrarian
 
       $libPaths = array();
       foreach($pkgs as $pkgDef){
-        if(is_array($pkgDef['Files'])){
+        if(isset($pkgDef['Files']) && is_array($pkgDef['Files'])){
           self::addPackagePaths($libPaths,$pkgDef['Files']);
         }
+
         if($debug){
-          if(is_array($pkgDef['DebugFiles'])){
+          if(
+            isset($pkgDef['DebugFiles'])
+            && is_array($pkgDef['DebugFiles'])
+          ){
             self::addPackagePaths($libPaths,$pkgDef['DebugFiles']);
           }
         }
         else{
-          if(is_array($pkgDef['ReleaseFiles'])){
+          if(
+            isset($pkgDef['ReleaseFiles'])
+            && is_array($pkgDef['ReleaseFiles'])
+          ){
             self::addPackagePaths($libPaths,$pkgDef['ReleaseFiles']);
           }
         }
@@ -135,7 +146,10 @@ class bbbfly_AppLibrarian
     if(!is_array($def)){return $def;}
 
     //require all libraries on which it depends on
-    if(is_array($def['RequiredLibraries'])){
+    if(
+      isset($def['RequiredLibraries'])
+      && is_array($def['RequiredLibraries'])
+    ){
       foreach($def['RequiredLibraries'] as $reqId => $reqVersion){
         $reqLib = self::libOpts($reqId,$reqVersion);
         self::loadLib($reqLib,$lib);
@@ -159,7 +173,7 @@ class bbbfly_AppLibrarian
 
   protected static function loadLibDef($lib,$parent){
     //get library path
-    $appLibDef =& self::getAppLibDef($lib->id);
+    $appLibDef = self::getAppLibDef($lib->id);
 
     if(is_array($appLibDef)){
       $libVer = isset($appLibDef['Version']) ? $appLibDef['Version'] : '';
@@ -209,8 +223,10 @@ class bbbfly_AppLibrarian
   }
 
   protected static function currentLib($lib,$parent){
-    if(is_array(self::$libDefs[$lib->id])){
-
+    if(
+      isset(self::$libDefs[$lib->id])
+      && is_array(self::$libDefs[$lib->id])
+    ){
       $current =& self::$libDefs[$lib->id];
       $currentLib = self::libOpts($current['Lib'],$current['Version']);
 
@@ -263,12 +279,12 @@ class bbbfly_AppLibrarian
   }
 
   protected static function getMemberDef(&$def,$holder,$memberId){
-    if(
-      is_array($def)
-      && is_array($def[$holder])
-      && is_array($def[$holder][$memberId])
-    ){
-      return $def[$holder][$memberId];
+    if(is_array($def) && isset($def[$holder]) && is_array($def[$holder])){
+      $def =& $def[$holder];
+
+      if(isset($def[$memberId]) && is_array($def[$memberId])){
+        return $def[$memberId];
+      }
     }
     return null;
   }
@@ -277,8 +293,11 @@ class bbbfly_AppLibrarian
     if(!is_array($libs) || !is_array($stack)){return;}
 
     foreach($libs as $libId => $libDef){
-      if(is_array($libDef) && is_array($libDef['Packages'])){
-
+      if(
+        is_array($libDef)
+        && isset($libDef['Packages'])
+        && is_array($libDef['Packages'])
+      ){
         foreach($libDef['Packages'] as $pkgId){
           if(!self::getMemberDef($stack,$libId,$pkgId)){
             $pkg = self::pkgOpts($pkgId,$libId);
@@ -299,16 +318,19 @@ class bbbfly_AppLibrarian
       );
     }
 
-    if(!is_array($stack[$pkg->lib])){$stack[$pkg->lib] = array();}
+    if(!isset($stack[$pkg->lib])){$stack[$pkg->lib] = array();}
     $stack[$pkg->lib][$pkg->id] =& $pkgDef;
 
-    if(is_array($pkgDef['Libraries'])){
+    if(isset($pkgDef['Libraries']) && is_array($pkgDef['Libraries'])){
       self:: addPackages($stack,$pkgDef['Libraries'],$pkg);
     }
   }
 
   protected static function getPackageDef($pkg){
-    if(is_array(self::$libDefs[$pkg->lib])){
+    if(
+      isset(self::$libDefs[$pkg->lib])
+      && is_array(self::$libDefs[$pkg->lib])
+    ){
       $libDef =& self::$libDefs[$pkg->lib];
       return self::getMemberDef($libDef,'Packages',$pkg->id);
     }
