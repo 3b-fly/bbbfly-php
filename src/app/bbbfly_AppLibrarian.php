@@ -107,7 +107,10 @@ class bbbfly_AppLibrarian
 
       $libPaths = array();
       foreach($pkgs as $pkgDef){
-        if(isset($pkgDef['Files']) && is_array($pkgDef['Files'])){
+        if(
+          isset($pkgDef['Files'])
+          && is_array($pkgDef['Files'])
+        ){
           self::addPackagePaths($libPaths,$pkgDef['Files']);
         }
 
@@ -128,7 +131,10 @@ class bbbfly_AppLibrarian
           }
         }
       }
-      $paths[$libId] =& $libPaths;
+
+      if(count($libPaths) > 0){
+        $paths[$libId] =& $libPaths;
+      }
       unset($libPaths);
     }
 
