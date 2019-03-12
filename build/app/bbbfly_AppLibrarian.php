@@ -97,47 +97,11 @@ class bbbfly_AppLibrarian
         $parent = 'application';
       }
     }
-    $pkgLibs = array();
-    self::addPackages($pkgLibs,$libs,$parent);
-    $paths = array();
-    foreach($pkgLibs as $libId => $pkgs){
-      if(count($pkgs) < 1){continue;}
-
-      $libPaths = array();
-      foreach($pkgs as $pkgDef){
-        if(
-          isset($pkgDef['Files'])
-          && is_array($pkgDef['Files'])
-        ){
-          self::addPackagePaths($libPaths,$pkgDef['Files']);
-        }
-
-        if($debug){
-          if(
-            isset($pkgDef['DebugFiles'])
-            && is_array($pkgDef['DebugFiles'])
-          ){
-            self::addPackagePaths($libPaths,$pkgDef['DebugFiles']);
-          }
-        }
-        else{
-          if(
-            isset($pkgDef['ReleaseFiles'])
-            && is_array($pkgDef['ReleaseFiles'])
-          ){
-            self::addPackagePaths($libPaths,$pkgDef['ReleaseFiles']);
-          }
-        }
-      }
-
-      if(count($libPaths) > 0){
-        $paths[$libId] =& $libPaths;
-      }
-      unset($libPaths);
-    }
-
+    $pkgFiles = array();
+    self::addPackages($pkgFiles,$libs,$parent);
+    $paths = self::packagesToLibFilePaths($pkgFiles,$debug);
     if(self::$logErrors){self::logErrors();}
-    return self::hasErrors() ? null : $paths;
+    return self::hasErrors() ? array() : $paths;
   }
 
   protected static function loadLib($lib,$parent){
@@ -279,6 +243,50 @@ class bbbfly_AppLibrarian
       }
     }
     return null;
+  }
+
+  protected static function packagesToLibFilePaths(&$pkgFiles,$debug=false){
+    $paths = array();
+    if(is_array($pkgFiles)){
+      foreach($pkgFiles as $libId => $pkgs){
+        if(!is_array($pkgs) || (count($pkgs) < 1)){continue;}
+
+        $libPaths = array();
+        foreach($pkgs as $pkgDef){
+          if(!is_array($pkgDef)){continue;}
+
+          if(
+            isset($pkgDef['Files'])
+            && is_array($pkgDef['Files'])
+          ){
+            self::addPackagePaths($libPaths,$pkgDef['Files']);
+          }
+
+          if($debug){
+            if(
+              isset($pkgDef['DebugFiles'])
+              && is_array($pkgDef['DebugFiles'])
+            ){
+              self::addPackagePaths($libPaths,$pkgDef['DebugFiles']);
+            }
+          }
+          else{
+            if(
+              isset($pkgDef['ReleaseFiles'])
+              && is_array($pkgDef['ReleaseFiles'])
+            ){
+              self::addPackagePaths($libPaths,$pkgDef['ReleaseFiles']);
+            }
+          }
+        }
+
+        if(count($libPaths) > 0){
+          $paths[$libId] =& $libPaths;
+        }
+        unset($libPaths);
+      }
+    }
+    return $paths;
   }
 
   protected static function addPackages(&$stack,&$libs,$parent){
