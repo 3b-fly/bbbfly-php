@@ -392,7 +392,7 @@ class bbbfly_AppLibrarian
     return $error;
   }
 
-  protected static function hasErrors(){
+  public static function hasErrors(){
     return (count(self::$errors) > 0);
   }
 
