@@ -10,21 +10,24 @@ class bbbfly_AppLibrarian
   const PKG_USER_ID = '~USER~';
   const PKG_USER_LIB = '~USER~';
 
+  protected static $errors = array();
   protected static $logErrors = true;
 
   protected static $appDir = null;
-  protected static $appDef = null;
 
+  protected static $appDef = null;
   protected static $libDefs = array();
-  protected static $errors = array();
+
+  protected static $packages = array();
 
   private function __construct(){}
 
   protected static function clear(){
     self::$appDir = null;
     self::$appDef = null;
-    self::$libDefs = array();
 
+    self::$libDefs = array();
+    self::$packages = array();
     self::clearErrors();
   }
 
@@ -295,6 +298,17 @@ class bbbfly_AppLibrarian
     return is_array($def) ? $def : null;
   }
 
+  protected static function getPackage($libId,$pkgId){
+    $def = self::getMember(self::$packages,$libId,$pkgId);
+    return is_object($def) ? $def : null;
+  }
+
+  protected static function addPackage($libId,$pkgId,&$pkg){
+    return is_object($pkg)
+      ? self::addMember(self::$packages,$libId,$pkgId,$pkg)
+      : false;
+  }
+
   protected static function packagesToLibFilePaths(&$pkgFiles,$debug=false){
     $paths = array();
     if(is_array($pkgFiles)){
@@ -337,6 +351,52 @@ class bbbfly_AppLibrarian
       }
     }
     return $paths;
+  }
+
+  protected static function mapPackages(&$libs,$prnt){
+    if(!is_array($libs)){return null;}
+
+    $packages = array();
+    foreach($libs as $libId => $libDef){
+      if(
+        is_array($libDef)
+        && isset($libDef['Packages'])
+        && is_array($libDef['Packages'])
+      ){
+        foreach($libDef['Packages'] as $pkgId){
+          $package = self::getPackage($libId,$pkgId);
+          if(!$package){
+            $pkg = self::pkgOpts($pkgId,$libId);
+            $package = self::mapPackage($pkg,$prnt);
+          }
+
+          if(!($package instanceof Exception)){
+            $packages[] =& $package;
+          }
+        }
+      }
+    }
+    return $packages;
+  }
+
+  protected static function mapPackage($pkg,$prnt){
+    $pkgDef = self::getPackageDef($pkg);
+
+    if(!is_array($pkgDef)){
+      return self::riseError(
+        bbbfly_AppLibrarian_Error::ERROR_PKG_INVALID,
+        array('parent' => $prnt,'pkg' => $pkg)
+      );
+    }
+
+    $package = new bbbfly_AppLibrarian_Package($pkg,$pkgDef);
+    self::addPackage($pkg->lib,$pkg->id,$package);
+
+    if(isset($pkgDef['Libraries'])){
+      $packages = self::mapPackages($pkgDef['Libraries'],$pkg);
+      $package->requirePackages(&$packages);
+    }
+    return $package;
   }
 
   protected static function stackPackages(&$stack,&$libs,$prnt){
@@ -460,6 +520,46 @@ class bbbfly_AppLibrarian
     $errors = self::getErrors();
     foreach($errors as $error){
       error_log($error);
+    }
+  }
+}
+
+class bbbfly_AppLibrarian_Package
+{
+  protected $_pkg = null;
+  protected $_def = null;
+
+  protected $_requires = array();
+  protected $_requiredBy = array();
+
+  public function __construct(&$pkg,&$def){
+    if(is_object($pkg)){$this->_pkg =& $pkg;}
+    if(is_array($def)){$this->_def =& $def;}
+  }
+
+  public function __get($propName){
+    switch($propName){
+      case 'pkg': return $this->_pkg;
+      case 'def': return $this->_def;
+      case 'requires': return $this->_requires;
+      case 'requiredBy': return $this->_requiredBy;
+    }
+  }
+
+  public function requirePackages(&$packages){
+    if(is_array($packages)){
+      foreach($packages as $package){
+        if($package instanceof bbbfly_AppLibrarian_Package){
+          $package->requireByPackage($package);
+          $this->_requires[] =& $package;
+        }
+      }
+    }
+  }
+
+  public function requireByPackage(&$package){
+    if($package instanceof bbbfly_AppLibrarian_Package){
+      $this->_requiredBy[] =& $package;
     }
   }
 }
