@@ -4,6 +4,12 @@ class bbbfly_AppLibrarian
   const DEF_FILENAME_APP = 'controls-app.json';
   const DEF_FILENAME_LIB = 'controls.json';
 
+  const PKG_APP_ID = '~APP~';
+  const PKG_APP_LIB = '~APP~';
+
+  const PKG_USER_ID = '~USER~';
+  const PKG_USER_LIB = '~USER~';
+
   protected static $logErrors = true;
 
   protected static $appDir = null;
@@ -82,7 +88,11 @@ class bbbfly_AppLibrarian
 
   public static function exportLibFilePaths($libs=null,$debug=false){
     self::clearErrors();
-    $prnt = null;
+
+    $prnt = self::pkgOpts(
+      self::PKG_USER_ID,
+      self::PKG_USER_LIB
+    );
 
     //use default libraries
     if(is_null($libs)){
@@ -92,7 +102,10 @@ class bbbfly_AppLibrarian
         && is_array(self::$appDef['Libraries'])
       ){
         $libs =& self::$appDef['Libraries'];
-        $prnt = 'application';
+        $prnt = self::pkgOpts(
+          self::PKG_APP_ID,
+          self::PKG_APP_LIB
+        );
       }
     }
 
