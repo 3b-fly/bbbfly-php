@@ -86,7 +86,7 @@ class bbbfly_AppLibrarian
 
   public static function exportLibFilePaths($libs=null,$debug=false){
     self::clearErrors();
-    $parent = null;
+    $prnt = null;
     if(is_null($libs)){
       if(
         is_array(self::$appDef)
@@ -94,17 +94,17 @@ class bbbfly_AppLibrarian
         && is_array(self::$appDef['Libraries'])
       ){
         $libs =& self::$appDef['Libraries'];
-        $parent = 'application';
+        $prnt = 'application';
       }
     }
     $pkgFiles = array();
-    self::addPackages($pkgFiles,$libs,$parent);
+    self::addPackages($pkgFiles,$libs,$prnt);
     $paths = self::packagesToLibFilePaths($pkgFiles,$debug);
     if(self::$logErrors){self::logErrors();}
     return self::hasErrors() ? array() : $paths;
   }
 
-  protected static function loadLib($lib,$parent){
+  protected static function loadLib($lib,$prnt){
     $def = self::currentLib($lib,$parent);
     if(!is_null($def)){return $def;}
     $def = self::loadLibDef($lib,$parent);
@@ -134,7 +134,7 @@ class bbbfly_AppLibrarian
     return $def;
   }
 
-  protected static function loadLibDef($lib,$parent){
+  protected static function loadLibDef($lib,$prnt){
     $appLibDef = self::getAppLibDef($lib->id);
 
     if(is_array($appLibDef)){
@@ -178,7 +178,7 @@ class bbbfly_AppLibrarian
     return $libDef;
   }
 
-  protected static function currentLib($lib,$parent){
+  protected static function currentLib($lib,$prnt){
     if(
       isset(self::$libDefs[$lib->id])
       && is_array(self::$libDefs[$lib->id])
@@ -189,7 +189,7 @@ class bbbfly_AppLibrarian
       if($lib->version !== $currentLib->version){
         return self::riseError(
           bbbfly_AppLibrarian_Error::ERROR_LIB_CONFLICT,
-          array('parent' => $parent,'lib' => $lib,'current' => $currentLib)
+          array('parent' => $prnt,'lib' => $lib,'current' => $currentLib)
         );
       }
       return $current;
@@ -231,18 +231,24 @@ class bbbfly_AppLibrarian
   }
 
   protected static function getAppLibDef($libId){
-    return self::getMemberDef(self::$appDef,'Libraries',$libId);
+    return self::getMember(self::$appDef,'Libraries',$libId);
   }
 
-  protected static function getMemberDef(&$def,$holder,$memberId){
-    if(is_array($def) && isset($def[$holder]) && is_array($def[$holder])){
-      $def =& $def[$holder];
+  protected static function getMember(&$stack,$holderId,$memberId){
+    if(is_array($stack) && isset($stack[$holderId])){
+      if(!is_array($stack[$holderId])){return null;}
 
-      if(isset($def[$memberId]) && is_array($def[$memberId])){
-        return $def[$memberId];
+      $stack =& $stack[$holderId];
+      if(isset($stack[$memberId])){
+        return $stack[$memberId];
       }
     }
     return null;
+  }
+
+  protected static function getMemberDef(&$stack,$holderId,$memberId){
+    $def = self::getMember(&$stack,$holderId,$memberId);
+    return is_array($def) ? $def : null;
   }
 
   protected static function packagesToLibFilePaths(&$pkgFiles,$debug=false){
@@ -289,7 +295,7 @@ class bbbfly_AppLibrarian
     return $paths;
   }
 
-  protected static function addPackages(&$stack,&$libs,$parent){
+  protected static function addPackages(&$stack,&$libs,$prnt){
     if(!is_array($libs) || !is_array($stack)){return;}
 
     foreach($libs as $libId => $libDef){
@@ -301,20 +307,20 @@ class bbbfly_AppLibrarian
         foreach($libDef['Packages'] as $pkgId){
           if(!self::getMemberDef($stack,$libId,$pkgId)){
             $pkg = self::pkgOpts($pkgId,$libId);
-            self::addPackage($stack,$pkg,$parent);
+            self::addPackage($stack,$pkg,$prnt);
           }
         }
       }
     }
   }
 
-  protected static function addPackage(&$stack,$pkg,$parent){
+  protected static function addPackage(&$stack,$pkg,$prnt){
     $pkgDef = self::getPackageDef($pkg);
 
     if(!is_array($pkgDef)){
       self::riseError(
         bbbfly_AppLibrarian_Error::ERROR_PKG_INVALID,
-        array('parent' => $parent,'pkg' => $pkg)
+        array('parent' => $prnt,'pkg' => $pkg)
       );
     }
 
