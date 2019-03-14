@@ -105,9 +105,9 @@ class bbbfly_AppLibrarian
   }
 
   protected static function loadLib($lib,$prnt){
-    $def = self::currentLib($lib,$parent);
+    $def = self::currentLib($lib,$prnt);
     if(!is_null($def)){return $def;}
-    $def = self::loadLibDef($lib,$parent);
+    $def = self::loadLibDef($lib,$prnt);
     if(!is_array($def)){return $def;}
     if(
       isset($def['RequiredLibraries'])
@@ -145,7 +145,7 @@ class bbbfly_AppLibrarian
     if(!is_array($appLibDef)){
       return self::riseError(
         bbbfly_AppLibrarian_Error::ERROR_LIB,
-        array('parent' => $parent,'lib' => $lib)
+        array('parent' => $prnt,'lib' => $lib)
       );
     }
 
@@ -157,21 +157,21 @@ class bbbfly_AppLibrarian
     if(!is_string($path)){
       return self::riseError(
         bbbfly_AppLibrarian_Error::ERROR_LIB_PATH,
-        array('parent' => $parent,'lib' => $lib)
+        array('parent' => $prnt,'lib' => $lib)
       );
     }
     $libDef = self::loadDef($path,self::DEF_FILENAME_LIB);
     if(!is_array($libDef)){
       return self::riseError(
         bbbfly_AppLibrarian_Error::ERROR_LIB_DEF,
-        array('parent' => $parent,'lib' => $lib,'path' => $path)
+        array('parent' => $prnt,'lib' => $lib,'path' => $path)
       );
     }
     $realLib = self::libOpts($libDef['Lib'],$libDef['Version']);
     if(($lib->id !== $realLib->id) || ($lib->version !== $realLib->version)){
       return self::riseError(
         bbbfly_AppLibrarian_Error::ERROR_LIB_INVALID,
-        array('parent' => $parent,'required' => $lib,'real' => $realLib)
+        array('parent' => $prnt,'required' => $lib,'real' => $realLib)
       );
     }
     self::$libDefs[$lib->id] =& $libDef;
