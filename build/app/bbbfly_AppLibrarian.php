@@ -259,6 +259,21 @@ class bbbfly_AppLibrarian
     return null;
   }
 
+  protected static function addMember(&$stack,$holderId,$memberId,&$member){
+    if(
+      is_array($stack) && is_string($holderId)
+      && is_string($memberId) && $member
+    ){
+      if(!isset($stack[$holderId])){$stack[$holderId] = array();}
+
+      if(is_array($stack[$holderId])){
+        $stack[$holderId][$memberId] = $member;
+        return true;
+      }
+    }
+    return false;
+  }
+
   protected static function getMemberDef(&$stack,$holderId,$memberId){
     $def = self::getMember(&$stack,$holderId,$memberId);
     return is_array($def) ? $def : null;
