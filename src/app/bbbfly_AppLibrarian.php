@@ -374,6 +374,7 @@ class bbbfly_AppLibrarian
           if($package instanceof bbbfly_AppLibrarian_Package){
             $packages[] =& $package;
           }
+          unset($package);
         }
       }
     }
@@ -395,7 +396,7 @@ class bbbfly_AppLibrarian
 
     if(isset($pkgDef['Libraries'])){
       $packages = self::mapPackages($pkgDef['Libraries'],$pkg);
-      $package->requirePackages(&$packages);
+      $package->requirePackages($packages);
     }
     return $package;
   }
@@ -559,8 +560,8 @@ class bbbfly_AppLibrarian_Package
     if(is_array($packages)){
       foreach($packages as $package){
         if($package instanceof bbbfly_AppLibrarian_Package){
-          $package->requireByPackage($package);
-          $this->_requires[] =& $package;
+          $package->requireByPackage($this);
+          $this->_requires[$package->id] =& $package;
         }
       }
     }
@@ -568,7 +569,7 @@ class bbbfly_AppLibrarian_Package
 
   public function requireByPackage(&$package){
     if($package instanceof bbbfly_AppLibrarian_Package){
-      $this->_requiredBy[] =& $package;
+      $this->_requiredBy[$package->id] =& $package;
     }
   }
 
