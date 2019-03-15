@@ -282,15 +282,18 @@ class bbbfly_AppLibrarian
     return is_array($def) ? $def : null;
   }
 
-  protected static function getPackage($libId,$pkgId){
-    $def = self::getMember(self::$packages,$libId,$pkgId);
+  protected static function getPackage($pkg){
+    $def = self::getMember(self::$packages,$pkg->lib,$pkg->id);
     return is_object($def) ? $def : null;
   }
 
-  protected static function addPackage($libId,$pkgId,&$pkg){
-    return is_object($pkg)
-      ? self::addMember(self::$packages,$libId,$pkgId,$pkg)
-      : false;
+  protected static function addPackage($pkg,&$package){
+    if(is_object($package)){
+      return self::addMember(
+        self::$packages,$pkg->lib,$pkg->id,$package
+      );
+    }
+    return false;
   }
 
   protected static function packagesToLibFilePaths(&$pkgFiles,$debug=false){
@@ -348,13 +351,11 @@ class bbbfly_AppLibrarian
         && is_array($libDef['Packages'])
       ){
         foreach($libDef['Packages'] as $pkgId){
-          $package = self::getPackage($libId,$pkgId);
-          if(!$package){
-            $pkg = self::pkgOpts($pkgId,$libId);
-            $package = self::mapPackage($pkg,$prnt);
-          }
+          $pkg = self::pkgOpts($pkgId,$libId);
+          $package = self::getPackage($pkg);
 
-          if(!($package instanceof Exception)){
+          if(!$package){$package = self::mapPackage($pkg,$prnt);}
+          if($package instanceof bbbfly_AppLibrarian_Package){
             $packages[] =& $package;
           }
         }
@@ -374,7 +375,7 @@ class bbbfly_AppLibrarian
     }
 
     $package = new bbbfly_AppLibrarian_Package($pkg,$pkgDef);
-    self::addPackage($pkg->lib,$pkg->id,$package);
+    self::addPackage($pkg,$package);
 
     if(isset($pkgDef['Libraries'])){
       $packages = self::mapPackages($pkgDef['Libraries'],$pkg);
