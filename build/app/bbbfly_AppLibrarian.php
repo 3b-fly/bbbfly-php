@@ -510,6 +510,10 @@ class bbbfly_AppLibrarian
 
 class bbbfly_AppLibrarian_Package
 {
+  protected static $lastId = 0;
+  protected static $packages = array();
+
+  protected $_id = null;
   protected $_pkg = null;
   protected $_def = null;
 
@@ -519,10 +523,14 @@ class bbbfly_AppLibrarian_Package
   public function __construct(&$pkg,&$def){
     if(is_object($pkg)){$this->_pkg =& $pkg;}
     if(is_array($def)){$this->_def =& $def;}
+
+    $this->_id = ++self::$lastId;
+    self::$packages[$this->id] =& $this;
   }
 
   public function __get($propName){
     switch($propName){
+      case 'id': return $this->_id;
       case 'pkg': return $this->_pkg;
       case 'def': return $this->_def;
       case 'requires': return $this->_requires;
@@ -545,6 +553,11 @@ class bbbfly_AppLibrarian_Package
     if($package instanceof bbbfly_AppLibrarian_Package){
       $this->_requiredBy[] =& $package;
     }
+  }
+
+  public static function getById($id){
+    return isset(self::$packages[$id])
+      ? self::$packages[$id] : null;
   }
 }
 
