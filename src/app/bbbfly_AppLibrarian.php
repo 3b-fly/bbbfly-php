@@ -14,6 +14,7 @@ class bbbfly_AppLibrarian
   protected static $logErrors = true;
 
   protected static $appDir = null;
+  protected static $libDirs = array();
 
   protected static $appDef = null;
   protected static $libDefs = array();
@@ -24,9 +25,11 @@ class bbbfly_AppLibrarian
 
   protected static function clear(){
     self::$appDir = null;
-    self::$appDef = null;
+    self::$libDirs = array();
 
+    self::$appDef = null;
     self::$libDefs = array();
+
     self::$packages = array();
     self::clearErrors();
   }
@@ -49,20 +52,32 @@ class bbbfly_AppLibrarian
     return $obj;
   }
 
-  public static function loadApp($path){
+  public static function loadApp($serverPath,$clientPath=null){
     self::clear();
 
     //load application definition
-    $def = self::loadAppDef($path);
+    $def = self::loadAppDef($serverPath);
 
     //require all libraries
     if(is_array($def)){
       if(isset($def['Libraries']) && is_array($def['Libraries'])){
-        foreach($def['Libraries'] as $libId => $libDef){
+        $libsPath = '';
 
-          if(is_array($libDef) && isset($libDef['Version'])){
-            $lib = self::libOpts($libId,$libDef['Version']);
-            self::loadLib($lib,'application');
+        if(is_string($clientPath)){
+          $libsPath = $clientPath.'/';
+        }
+
+        foreach($def['Libraries'] as $libId => $libDef){
+          if(is_array($libDef)){
+
+            if(isset($libDef['Version'])){
+              $lib = self::libOpts($libId,$libDef['Version']);
+              self::loadLib($lib,'application');
+            }
+            if(is_string($libDef['Path'])){
+              $path = self::clientPath($libsPath.'/'.$libDef['Path']);
+              self::$libDirs[$libId] = $path;
+            }
           }
         }
       }
@@ -72,21 +87,18 @@ class bbbfly_AppLibrarian
     return !self::hasErrors();
   }
 
-  public static function exportLibPaths($libsPath){
-    self::clearErrors();
-    $paths = array();
-
-    if(is_array(self::$appDef) && is_array(self::$appDef['Libraries'])){
-      $libsPath = is_string($libsPath) ? $libsPath.'/' : '';
-
-      foreach(self::$appDef['Libraries'] as $libId => $libDef){
-        if(is_array($libDef) && is_string($libDef['Path'])){
-          $path = self::clintPath($libsPath.'/'.$libDef['Path']);
-          $paths[$libId] = $path;
-        }
-      }
+  public static function getLibPath($libId){
+    if(is_string($libId) && is_set(self::$libDirs[$libId])){
+      
+      $path = self::$libDirs[$libId];
+      if(is_string($path)){return $path;}
     }
-    return $paths;
+    return null;
+  }
+
+  public static function exportLibPaths(){
+    self::clearErrors();
+    return self::$libDirs;
   }
 
   public static function exportLibFilePaths($libs=null,$debug=false){
@@ -404,21 +416,21 @@ class bbbfly_AppLibrarian
   protected static function stackPackages(&$stack,&$libs,$prnt){
     if(!is_array($libs) || !is_array($stack)){return;}
 
-    foreach($libs as $libId => $libDef){
-      if(
-        is_array($libDef)
-        && isset($libDef['Packages'])
-        && is_array($libDef['Packages'])
-      ){
-        foreach($libDef['Packages'] as $pkgId){
+      foreach($libs as $libId => $libDef){
+        if(
+          is_array($libDef)
+          && isset($libDef['Packages'])
+          && is_array($libDef['Packages'])
+        ){
+          foreach($libDef['Packages'] as $pkgId){
           if(!self::getMemberDef($stack,$libId,$pkgId)){
             $pkg = self::pkgOpts($pkgId,$libId);
             self::stackPackage($stack,$pkg,$prnt);
+            }
           }
         }
       }
     }
-  }
 
   protected static function stackPackage(&$stack,$pkg,$prnt){
     $pkgDef = self::getPackageDef($pkg);
@@ -427,16 +439,16 @@ class bbbfly_AppLibrarian
       self::riseError(
         bbbfly_AppLibrarian_Error::ERROR_PKG_INVALID,
         array('parent' => $prnt,'pkg' => $pkg)
-      );
-    }
+        );
+      }
 
     if(!isset($stack[$pkg->lib])){$stack[$pkg->lib] = array();}
     $stack[$pkg->lib][$pkg->id] =& $pkgDef;
 
     if(isset($pkgDef['Libraries']) && is_array($pkgDef['Libraries'])){
       self:: stackPackages($stack,$pkgDef['Libraries'],$pkg);
-    }
-  }
+      }
+        }
 
   protected static function getPackageDef($pkg){
     if(
@@ -452,7 +464,7 @@ class bbbfly_AppLibrarian
   protected static function stackPackagePaths(&$stack,&$files){
     if(is_array($stack) && is_array($files)){
       foreach($files as $filePath){
-        $stack[] = self::clintPath($filePath);
+        $stack[] = self::clientPath($filePath);
       }
     }
   }
@@ -488,7 +500,7 @@ class bbbfly_AppLibrarian
     return $path;
   }
 
-  protected static function clintPath($path){
+  protected static function clientPath($path){
     if(is_string($path)){
       $path = str_replace('\\','/',$path);
       $path = preg_replace('/\/+/', '/',$path);
