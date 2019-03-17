@@ -23,7 +23,7 @@ class bbbfly_AppLibrarian
   protected $pathStack = null;
 
   public function __construct(){
-    $this->pathStack = new bbbfly_AppLibrarian_Stack();
+    $this->pathStack = new bbbfly_AppLibrarian_PathStack();
   }
 
   protected function clear(){
@@ -34,9 +34,13 @@ class bbbfly_AppLibrarian
     $this->libDefs = array();
 
     $this->packages = array();
-    $this->pathStack->clear();
 
     $this->clearErrors();
+    $this->clearPaths();
+  }
+
+  protected function clearPaths(){
+    $this->pathStack->clear();
   }
 
   protected function clearErrors(){
@@ -92,7 +96,7 @@ class bbbfly_AppLibrarian
     return !$this->hasErrors();
   }
 
-  public function getLibPath($libId){
+  protected function getLibPath($libId){
     if(is_string($libId) && isset($this->libDirs[$libId])){
 
       $path = $this->libDirs[$libId];
@@ -106,8 +110,9 @@ class bbbfly_AppLibrarian
     return $this->libDirs;
   }
 
-  public function exportLibFilePaths($libs=null,$debug=false){
+  public function exportLibFilePaths($libs=null,$debug=false,$restrict=false){
     $this->clearErrors();
+    $this->clearPaths();
 
     $prnt = self::pkgOpts(
       self::PKG_USER_ID,
@@ -132,6 +137,11 @@ class bbbfly_AppLibrarian
     //get required packages file paths
     $this->mapPackages($libs,$prnt);
     $paths = $this->getFilePaths($libs,$prnt,false);
+
+    //restrict paths future export
+    if($restrict){
+      $this->pathStack->restrictPaths();
+    }
 
     //handle result
     if($this->logErrors){$this->logErrors();}
@@ -443,7 +453,7 @@ class bbbfly_AppLibrarian
     if(!is_array($files) || !is_string($libPath)){return;}
 
     foreach($files as $filePath){
-      $this->pathStack->add(
+      $this->pathStack->addPath(
         self::clientPath($libPath.$filePath)
       );
     }
@@ -586,25 +596,40 @@ class bbbfly_AppLibrarian_Package
   }
 }
 
-class bbbfly_AppLibrarian_Stack
+class bbbfly_AppLibrarian_PathStack
 {
-  protected $_keys = array();
+  protected $_stack = array();
   protected $_paths = array();
+  protected $_restrict = array();
 
-  public function clear(){
-    $this->_keys = array();
+  public function clear($restrictions=false){
+    $this->_stack = array();
     $this->_paths = array();
+
+    if($restrictions){
+      $this->_restrict = array();
+    }
   }
 
-  public function add($path){
-    if(is_string($path) && !isset($this->_keys[$path])){
-      $this->_keys[$path] = true;
-      $this->_paths[] = $path;
+  public function addPath($path){
+    if(
+      is_string($path)
+      && !isset($this->_paths[$path])
+      && !isset($this->_restrict[$path])
+    ){
+      $this->_paths[$path] = true;
+      $this->_stack[] = $path;
+    }
+  }
+
+  public function restrictPaths(){
+    foreach($this->_paths as $path => $value){
+      $this->_restrict[$path] = $value;
     }
   }
 
   public function getPaths(){
-    return $this->_paths;
+    return $this->_stack;
   }
 }
 
