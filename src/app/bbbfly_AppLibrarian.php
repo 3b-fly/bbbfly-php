@@ -136,7 +136,7 @@ class bbbfly_AppLibrarian
 
     //get required packages file paths
     $this->mapPackages($libs,$prnt);
-    $paths = $this->getFilePaths($libs,$prnt,false);
+    $paths = $this->getFilePaths($libs,$prnt,$debug);
 
     //restrict paths future export
     if($restrict){

@@ -136,7 +136,7 @@ class bbbfly_AppLibrarian
       }
     }
     $this->mapPackages($libs,$prnt);
-    $paths = $this->getFilePaths($libs,$prnt,false);
+    $paths = $this->getFilePaths($libs,$prnt,$debug);
     if($restrict){
       $this->pathStack->restrictPaths();
     }
