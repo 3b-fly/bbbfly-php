@@ -363,6 +363,10 @@ class bbbfly_AppLibrarian
       $packages = $this->mapPackages($pkgDef['Libraries'],$pkg);
       $package->requirePackages($packages);
     }
+    if(isset($pkgDef['Extends'])){
+      $packages = $this->mapPackages($pkgDef['Extends'],$pkg);
+      $package->extendPackages($packages);
+    }
     return $package;
   }
 
@@ -535,6 +539,8 @@ class bbbfly_AppLibrarian_Package
 
   protected $_requires = array();
   protected $_requiredBy = array();
+  protected $_extends = array();
+  protected $_extendedBy = array();
 
   public function __construct(&$pkg,&$def,$path){
     $this->_id = ++self::$lastId;
@@ -553,6 +559,8 @@ class bbbfly_AppLibrarian_Package
       case 'path': return $this->_path;
       case 'requires': return $this->_requires;
       case 'requiredBy': return $this->_requiredBy;
+      case 'extends': return $this->_extends;
+      case 'rextendedBy': return $this->_extendedBy;
     }
   }
 
@@ -571,6 +579,24 @@ class bbbfly_AppLibrarian_Package
   public function requireByPackage(&$package){
     if($package instanceof bbbfly_AppLibrarian_Package){
       $this->_requiredBy[$package->id] =& $package;
+    }
+  }
+
+  public function extendPackages(&$packages){
+    if(is_array($packages)){
+      foreach($packages as $package){
+        if($package instanceof bbbfly_AppLibrarian_Package){
+          $package->extendByPackage($this);
+          $this->_extends[$package->id] =& $package;
+        }
+        unset($package);
+      }
+    }
+  }
+
+  public function extendByPackage(&$package){
+    if($package instanceof bbbfly_AppLibrarian_Package){
+      $this->_extendedBy[$package->id] =& $package;
     }
   }
 
