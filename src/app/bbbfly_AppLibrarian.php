@@ -20,9 +20,11 @@ class bbbfly_AppLibrarian
   protected $libDefs = array();
 
   protected $packages = array();
+  protected $packageStack = null;
   protected $pathStack = null;
 
   public function __construct(){
+    $this->packageStack = new bbbfly_AppLibrarian_PackageStack();
     $this->pathStack = new bbbfly_AppLibrarian_PathStack();
   }
 
@@ -35,11 +37,12 @@ class bbbfly_AppLibrarian
 
     $this->packages = array();
 
+    $this->clearPackages();
     $this->clearErrors();
-    $this->clearPaths();
   }
 
-  protected function clearPaths(){
+  protected function clearPackages(){
+    $this->packageStack->clear();
     $this->pathStack->clear();
   }
 
@@ -111,8 +114,8 @@ class bbbfly_AppLibrarian
   }
 
   public function exportLibFilePaths($libs=null,$debug=false,$restrict=false){
+    $this->clearPackages();
     $this->clearErrors();
-    $this->clearPaths();
 
     $prnt = self::pkgOpts(
       self::PKG_USER_ID,
@@ -386,7 +389,7 @@ class bbbfly_AppLibrarian
     return $package;
   }
 
-  protected function getFilePaths(&$libs,$prnt,$debug=false){
+  protected function stackPackages(&$libs,&$prnt){
     if(is_array($libs)){
       foreach($libs as $libId => $libDef){
         if(
@@ -406,20 +409,17 @@ class bbbfly_AppLibrarian
               continue;
             }
 
-            $this->stackPackageFilePaths($package,$debug);
+            $this->stackPackage($package);
           }
         }
       }
     }
-
-    return $this->pathStack->getPaths();
+    return $this->packageStack->getPackages();
   }
 
-  protected function stackPackageFilePaths(
-    &$package,$debug=false,$parents=null
-  ){
+  protected function stackPackage(&$package,$parents=array()){
     if(!($package instanceof bbbfly_AppLibrarian_Package)){return;}
-    if(!is_array($parents)){$parents = array();}
+    if(!is_array($parents)){return;}
 
     $parents[$package->id] =& $package;
 
@@ -430,10 +430,21 @@ class bbbfly_AppLibrarian
           array('parent' => $package->pkg,'pkg' => $reqPackage->pkg)
         );
       }
-      $this->stackPackageFilePaths($reqPackage,$debug,$parents);
+      $this->stackPackage($reqPackage,$parents);
     }
 
-    if(is_array($package->def)){
+    $this->packageStack->addPackage($package);
+  }
+
+  protected function getFilePaths(&$libs,&$prnt,$debug=false){
+    $packages = $this->stackPackages($libs,$prnt);
+
+    foreach($packages as $package){
+      if(
+        !($package instanceof bbbfly_AppLibrarian_Package)
+        || !is_array($package->def)
+      ){continue;}
+
       $def = $package->def;
 
       if(isset($def['Files'])&& is_array($def['Files'])){
@@ -451,6 +462,8 @@ class bbbfly_AppLibrarian
         }
       }
     }
+
+    return $this->pathStack->getPaths();
   }
 
   protected function stackLibFilePaths(&$files,$libPath){
@@ -619,6 +632,31 @@ class bbbfly_AppLibrarian_Package
   public static function getById($id){
     return isset(self::$packages[$id])
       ? self::$packages[$id] : null;
+  }
+}
+
+class bbbfly_AppLibrarian_PackageStack
+{
+  protected $_stack = array();
+  protected $_packages = array();
+
+  public function clear(){
+    $this->_stack = array();
+    $this->_packages = array();
+  }
+
+  public function addPackage(&$package){
+    if(
+      ($package instanceof bbbfly_AppLibrarian_Package)
+      && !isset($this->_packages[$package->id])
+    ){
+      $this->_packages[$package->id] = true;
+      $this->_stack[] = $package;
+    }
+  }
+
+  public function getPackages(){
+    return $this->_stack;
   }
 }
 
