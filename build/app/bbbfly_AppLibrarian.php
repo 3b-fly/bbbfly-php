@@ -393,13 +393,66 @@ class bbbfly_AppLibrarian
               continue;
             }
 
-            $errors = $this->packageStack->addPackage($package);
-            foreach($errors as $error){$this->addError($error);}
+            $this->stackPackage($package,false);
           }
         }
       }
     }
+
+    $this->resolveExtensions();
     return $this->packageStack->getPackages();
+  }
+
+  protected function stackPackage(&$package,$extend=false,$parents=array()){
+    if(!($package instanceof bbbfly_AppLibrarian_Package)){return;}
+    if(!is_array($parents)){return;}
+
+    $canAdd = (count($package->extends) < 1);
+
+    if(!$canAdd){
+      if(!$extend){
+        $this->packageStack->addExtension($package);
+      }
+      else{
+        foreach($package->extends as $extended){
+          if($this->packageStack->containsPackage($extended)){
+            $canAdd = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if($canAdd){
+      $parents[$package->id] =& $package;
+
+      foreach($package->requires as $reqPackage){
+        if(isset($parents[$reqPackage->id])){
+
+          $this->riseError(
+            bbbfly_AppLibrarian_Error::ERROR_PKG_CIRCREQ,
+            array('parent' => $package->pkg,'pkg' => $reqPackage->pkg)
+          );
+          continue;
+        }
+
+        $this->stackPackage($reqPackage,$extend,$parents);
+      }
+      $this->packageStack->addPackage($package);
+    }
+  }
+
+  protected function resolveExtensions(){
+    $extCnt = $this->packageStack->extensionsCnt();
+    if($extCnt < 1){return;}
+
+    foreach($this->packageStack->getExtensions() as $package){
+      $this->stackPackage($package,true);
+    }
+
+    if($this->packageStack->extensionsCnt() !== $extCnt){
+      $this->resolveExtensions();
+    }
   }
 
   protected function getFilePaths(&$libs,&$prnt,$debug=false){
@@ -611,51 +664,56 @@ class bbbfly_AppLibrarian_PackageStack
 {
   protected $_stack = array();
   protected $_packages = array();
+  protected $_extensions = array();
 
   public function clear(){
     $this->_stack = array();
     $this->_packages = array();
+    $this->_extensions = array();
   }
 
-  protected function stackPackage(&$package){
+  public function addPackage(&$package){
     if(
       ($package instanceof bbbfly_AppLibrarian_Package)
       && !isset($this->_packages[$package->id])
     ){
+      unset($this->_extensions[$package->id]);
+
       $this->_packages[$package->id] = true;
       $this->_stack[] = $package;
     }
   }
 
-  protected function doAddPackage(&$package,&$errors,$parents=array()){
-    if(!($package instanceof bbbfly_AppLibrarian_Package)){return;}
-    if(!is_array($errors) || !is_array($parents)){return;}
-
-    $parents[$package->id] =& $package;
-    foreach($package->requires as $reqPackage){
-
-      if(isset($parents[$reqPackage->id])){
-        $errors[] = new bbbfly_AppLibrarian_Error(
-          bbbfly_AppLibrarian_Error::ERROR_PKG_CIRCREQ,
-          array('parent' => $package->pkg,'pkg' => $reqPackage->pkg)
-        );
-        continue;
-      }
-
-      $this->doAddPackage($reqPackage,$errors,$parents);
+  public function addExtension(&$package){
+    if(
+      ($package instanceof bbbfly_AppLibrarian_Package)
+      && !isset($this->_extensions[$package->id])
+      && !isset($this->_packages[$package->id])
+    ){
+      $this->_extensions[$package->id] = $package;
     }
-    $this->stackPackage($package);
   }
 
-  public function addPackage(&$package){
-    $errors = array();
-    $this->doAddPackage($package,$errors);
-    return $errors;
+  public function containsPackage(&$package){
+    return (
+      ($package instanceof bbbfly_AppLibrarian_Package)
+      && isset($this->_packages[$package->id])
+    );
+  }
+
+  public function extensionsCnt(){
+    return count($this->_extensions);
+  }
+
+  public function getExtensions(){
+    return $this->_extensions;
   }
 
   public function getPackages(){
     return $this->_stack;
   }
+
+
 }
 
 class bbbfly_AppLibrarian_PathStack
