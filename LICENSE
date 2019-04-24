@@ -1,9 +1,24 @@
+
             THIS LICENSE APPLIES TO NON-COMMERCIAL USE ONLY.
   LICENCE FOR COMMERCIAL USE IS TO BE PURCHASED AT purchase@3b-fly.eu
+
+========================================================================
+
+                          THIRD PARTY LICENSES
+
+  Some packages contain third party code which falls under its own
+  license. Verify that you satisfy that third party license conditions
+  before using listed packages.
+
+ | package  | library             | version | license                 |
+ | -------- | ---------------- -- | ------- | ----------------------- |
+ | adodb    | ADOdb               | 5.20.12 | BSD 3-Clause / LGPLv2.1 |
+ | geoPHP   | geoPHP              | 1.2     | Modified BSD / GPLv2    |
+
 ========================================================================
 
                        GNU GENERAL PUBLIC LICENSE
-                          Version 3, 29 June 2007
+                        Version 3, 29 June 2007
 
  Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
  Everyone is permitted to copy and distribute verbatim copies
