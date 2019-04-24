@@ -321,7 +321,7 @@ class bbbfly_AppLibrarian
   }
 
   protected static function getMemberDef(&$stack,$holderId,$memberId){
-    $def = self::getMember(&$stack,$holderId,$memberId);
+    $def = self::getMember($stack,$holderId,$memberId);
     return is_array($def) ? $def : null;
   }
 
