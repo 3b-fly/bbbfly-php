@@ -31,8 +31,9 @@ class bbbfly_Upload
   const UPLOAD_ERROR_FILE_MOVE = 1145;
 
   const CLEAR_ERROR_NONE = 0;
-  const CLEAR_ERROR_REMOVE = 1160;
-  const CLEAR_ERROR_REMOVE_PARTIAL = 1161;
+  const CLEAR_ERROR_NOFILE = 1160;
+  const CLEAR_ERROR_REMOVE = 1161;
+  const CLEAR_ERROR_REMOVE_PARTIAL = 1162;
 
   private static $options = array(
     'uploadDir',
@@ -347,6 +348,9 @@ class bbbfly_Upload
       $this->_ErrorCode = ($anyRemoved)
         ? self::CLEAR_ERROR_REMOVE_PARTIAL
         : self::CLEAR_ERROR_REMOVE;
+    }
+    elseif(!$anyRemoved){
+      $this->_ErrorCode = self::CLEAR_ERROR_NOFILE;
     }
 
     return $this->ErrorCode;
