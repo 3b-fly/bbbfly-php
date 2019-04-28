@@ -32,7 +32,7 @@ class bbbfly_Require
   public static function setOptions($options){
     if(is_array($options)){
       foreach(self::$options as $name){
-        $propVal = $options[$name];
+        $propVal = isset($options[$name]) ? $options[$name] : null;
         $origVal = self::$props[$name];
 
         if(is_string($propVal) && ($propVal !== $origVal)){
@@ -41,7 +41,6 @@ class bbbfly_Require
         }
       }
     }
-    return $this;
   }
 
   protected static function syncIncludePaths(){
