@@ -28,6 +28,8 @@ abstract class bbbfly_RPC
   const OUTPUT_FILE = 5;
   const OUTPUT_JAVASCRIPT = 6;
 
+  const EXPIRES_MAX_TS = 2147483647; //32-bit integer
+
   const RPC_ERROR_NONE = 0;
   const RPC_ERROR_MISSING_EXTENSION = 1000;
   const RPC_ERROR_INVALID_PARAMS = 1001;
@@ -380,7 +382,7 @@ abstract class bbbfly_RPC
     $expiresTS = time();
     if($this->cache){
       if(is_int($this->cache)){$expiresTS += $this->cache;}
-      else{$expiresTS = PHP_INT_MAX;}
+      else{$expiresTS = self::EXPIRES_MAX_TS;}
 
       $this->addHeaders(array(
         'Cache-Control' => 'public',
@@ -395,7 +397,10 @@ abstract class bbbfly_RPC
       ));
     }
 
-    if($expiresTS > PHP_INT_MAX){$expiresTS = PHP_INT_MAX;}
+
+    if($expiresTS > self::EXPIRES_MAX_TS){
+      $expiresTS = self::EXPIRES_MAX_TS;
+    }
 
     $this->addHeaders(array(
       'Last-Modified' => gmdate('D, d M Y H:i:s').' GMT',
