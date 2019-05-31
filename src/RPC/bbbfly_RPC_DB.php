@@ -7,9 +7,10 @@ abstract class bbbfly_RPC_DB extends bbbfly_RPC
   const RPC_ERROR_DB_CONNECTION = 1100;
 
   protected static $_Options = array(
-    'dbConfigName','completeTrans'
+    'dbConfigAlias','dbConfigName','completeTrans'
   );
 
+  private $_dbConfigAlias = 'default';
   private $_dbConfigName = 'DB';
   private $_completeTrans = true;
 
@@ -17,6 +18,7 @@ abstract class bbbfly_RPC_DB extends bbbfly_RPC
 
   public function __get($propName){
     switch($propName){
+      case 'dbConfigAlias': return $this->_dbConfigAlias;
       case 'dbConfigName': return $this->_dbConfigName;
       case 'completeTrans': return $this->_completeTrans;
 
@@ -28,6 +30,7 @@ abstract class bbbfly_RPC_DB extends bbbfly_RPC
 
   public function __set($propName,$value){
     switch($propName){
+      case 'dbConfigAlias': if(is_string($value)){$this->_dbConfigAlias = $value;} break;
       case 'dbConfigName': if(is_string($value)){$this->_dbConfigName = $value;} break;
       case 'completeTrans': if(is_bool($value)){$this->_completeTrans = $value;} break;
       default: parent::__set($propName,$value); break;
@@ -36,7 +39,7 @@ abstract class bbbfly_RPC_DB extends bbbfly_RPC
 
   protected function getConnectionOptions(){
     if(class_exists('bbbfly_Config',false)){
-      return bbbfly_Config::get($this->dbConfigName);
+      return bbbfly_Config::get($this->dbConfigName,$this->dbConfigAlias);
     }
     return null;
   }
