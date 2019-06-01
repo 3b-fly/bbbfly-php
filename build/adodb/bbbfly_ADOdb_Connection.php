@@ -16,6 +16,13 @@
   global $ADODB_FETCH_MODE;
   $ADODB_FETCH_MODE = ADODB_FETCH_ASSOC;
 
+  global $ADODB_OUTP;
+  $ADODB_OUTP = 'bbbfly_ADOdb_DebugOutput';
+
+  function bbbfly_ADOdb_DebugOutput($message,$newline){
+    bbbfly_ADOdb_Connection::debugLog($message,$newline);
+  }
+
   class bbbfly_ADOdb_Connection
   {
     const TYPE_MYSQLI = 'mysqli';
@@ -27,6 +34,8 @@
     const TYPE_MSSQL = 'mssql';
     const TYPE_MSSQL_ODBC = 'mssql_odbc';
     const TYPE_MSSQL_NATIVE = 'mssql_native';
+
+    protected static $_debugPath = null;
 
     private function __construct(){}
 
@@ -121,6 +130,71 @@
         error_log($e);
         $connection = null;
       }
+
       return $connection;
+    }
+
+    protected static function rotateDebugPath($path,$rotation=null){
+      if(!is_string($path)){return null;}
+
+      $path = str_replace(array('/','\\'),DIRECTORY_SEPARATOR,$path);
+      if(substr($path,-1) === DIRECTORY_SEPARATOR){$path .= 'ADOdb_debug.log';}
+
+      if(!is_string($rotation)){$rotation = 'Y-m-d';}
+
+      $info = pathinfo($path);
+      $path = $info['filename'];
+
+      $errorLevel = error_reporting(0);
+      $timeZone = date_default_timezone_get();
+      date_default_timezone_set('UTC');
+      $path .= '_'.date($rotation);
+      date_default_timezone_set($timeZone);
+      error_reporting($errorLevel);
+
+      if(isset($info['dirname'])){
+        $path = $info['dirname'].DIRECTORY_SEPARATOR.$path;
+      }
+      if(isset($info['extension'])){
+        $path .= '.'.$info['extension'];
+      }
+
+      return $path;
+    }
+
+    public static function setDebugPath($path,$rotation=null){
+      self::$_debugPath = self::rotateDebugPath($path,$rotation);
+    }
+
+    public static function getDebugPath($key='ADOdb',$alias='default'){
+      if(is_string(self::$_debugPath)){return self::$_debugPath;}
+      if(!class_exists('bbbfly_Config',false)){return null;}
+
+      $path = bbbfly_Config::get('ADOdb.Debug.path',$alias);
+      $rotation = bbbfly_Config::get('ADOdb.Debug.rotation',$alias);
+      return self::rotateDebugPath($path,$rotation);
+    }
+
+    public static function debugLog($message,$newline){
+      $message = (string)$message;
+
+      $msgRows = explode("\n",$message);
+      $message = '';
+
+      foreach($msgRows as $msgRow){
+        $row = rtrim(str_replace('&nbsp;',' ',strip_tags($msgRow)));
+        if($row){$message .= $row.PHP_EOL;}
+      }
+
+      $message .= PHP_EOL;
+      $path = self::getDebugPath();
+
+      if(is_string($path)){
+        $message = '['.date('d-M-Y H:i:s').'] '.$message;
+        error_log($message,3,$path);
+      }
+      else{
+        error_log($message,0);
+      }
     }
   }
