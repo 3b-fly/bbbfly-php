@@ -27,6 +27,7 @@ abstract class bbbfly_RPC
   const OUTPUT_PDF = 4;
   const OUTPUT_FILE = 5;
   const OUTPUT_JAVASCRIPT = 6;
+  const OUTPUT_JAVASCRIPT_IFRAME = 7;
 
   const EXPIRES_MAX_TS = 2147483647; //32-bit integer
 
@@ -61,8 +62,6 @@ abstract class bbbfly_RPC
   private $_paramRules = array();
 
   private $_Method = null;
-  private $_HTTP = false;
-  private $_IFrame = false;
   private $_Upload = false;
 
   private $_ErrorCode = null;
@@ -108,8 +107,6 @@ abstract class bbbfly_RPC
       case 'paramRules': return $this->_paramRules;
 
       case 'Method': return $this->_Method;
-      case 'HTTP': return $this->_HTTP;
-      case 'IFrame': return $this->_IFrame;
       case 'Upload': return $this->_Upload;
       case 'Options': return self::$_Options;
 
@@ -192,16 +189,11 @@ abstract class bbbfly_RPC
   protected function detectRequestProperties(){
     $this->_Method = $_SERVER['REQUEST_METHOD'];
 
-    if((isset($_SERVER['HTTP_RPC'])) && ($_SERVER['HTTP_RPC'] === '1')){
-      $this->_HTTP = true;
-    }
-
     switch($this->Method){
       case self::METHOD_PUT:
         $this->_Upload = true;
       break;
       case self::METHOD_POST:
-        if(!$this->HTTP){$this->_IFrame = true;}
         if(count($_FILES) > 0){$this->_Upload = true;}
       break;
     }
@@ -217,14 +209,13 @@ abstract class bbbfly_RPC
       case self::OUTPUT_HTML: $outputMime = bbbfly_MIME::HTML; break;
       case self::OUTPUT_XML: $outputMime = bbbfly_MIME::XML; break;
       case self::OUTPUT_PDF: $outputMime = bbbfly_MIME::PDF; break;
+
+      case self::OUTPUT_JAVASCRIPT: $mime = bbbfly_MIME::JAVASCRIPT; break;
+      case self::OUTPUT_JAVASCRIPT_IFRAME: $mime = bbbfly_MIME::HTML; break;
+
       case self::OUTPUT_FILE:
         $outputMime = bbbfly_MIME::BIN;
         $outputFile = true;
-      break;
-
-      case self::OUTPUT_JAVASCRIPT:
-        if(($this->IFrame)){$mime = bbbfly_MIME::HTML;}
-        else{$mime = bbbfly_MIME::JAVASCRIPT;}
       break;
       default: return;
     }
@@ -246,17 +237,17 @@ abstract class bbbfly_RPC
 
   protected function getRequestParams(){
     $params = array();
+
     switch(PHP_SAPI){
       case 'cli':
         $params = bbbfly_Arguments::getAll();
       break;
       default:
         if($this->Upload){$params =& $_GET;}
-        elseif($this->IFrame){$params =& $_POST;}
         elseif($this->Method === self::METHOD_POST){$params =& $_POST;}
         else{$params =& $_GET;}
 
-        if(count($params) > 0){
+        if(is_array($params) && (count($params) > 0)){
           foreach($params as &$param){
             $param = $this->decodePHPParam($param);
           }
@@ -466,14 +457,6 @@ abstract class bbbfly_RPC
   }
 
   protected function validateOutput(){
-    switch($this->outputType){
-      case self::OUTPUT_JSON:
-        if(!$this->HTTP){
-          header('HTTP/1.0 400 Bad Request',true,400);
-          return false;
-        }
-      break;
-    }
     return true;
   }
 
@@ -522,24 +505,35 @@ abstract class bbbfly_RPC
       ob_implicit_flush(true);
     }
 
-    if($this->outputType === self::OUTPUT_JAVASCRIPT){
-      if($this->IFrame){
-        print('<!doctype html>'.PHP_EOL
-          .'<html><body>'.PHP_EOL
-          .'<script type="text/javascript">'.PHP_EOL
+    switch($this->outputType){
+      case self::OUTPUT_JAVASCRIPT_IFRAME:
+        print(
+          '<!doctype html>'.PHP_EOL.
+          '<html>'.PHP_EOL.
+          '<body>'.PHP_EOL.
+          '<script type="text/javascript">'.PHP_EOL
         );
-      }
-      if(!$this->HTTP){print('(function() {'.PHP_EOL);}
+      case self::OUTPUT_JAVASCRIPT:
+        print('(function() {'.PHP_EOL);
+      break;
     }
   }
 
   protected function endOutput(){
-    if($this->outputType === self::OUTPUT_JAVASCRIPT){
-      if(!$this->HTTP){print('})();'.PHP_EOL);}
-      if($this->IFrame){print('</script>'.PHP_EOL.'</body></html>'.PHP_EOL);}
-    }
+    switch($this->outputType){
+      case self::OUTPUT_JAVASCRIPT:
+      case self::OUTPUT_JAVASCRIPT_IFRAME:
+        print(PHP_EOL.'})();');
 
-    if($this->canBuffer()){ob_flush();}
+        if($this->outputType === self::OUTPUT_JAVASCRIPT_IFRAME){
+          print(
+            PHP_EOL.'</script>'.
+            PHP_EOL.'</body>'.
+            PHP_EOL.'</html>'
+          );
+        }
+      break;
+    }
   }
 
   protected function canBuffer(){
@@ -593,6 +587,7 @@ abstract class bbbfly_RPC
     switch($this->outputType){
       case self::OUTPUT_TEXT:
       case self::OUTPUT_JAVASCRIPT:
+      case self::OUTPUT_JAVASCRIPT_IFRAME:
       case self::OUTPUT_JSON:
         if(is_array($outputData) || is_object($outputData)){
           return json_encode($outputData);
