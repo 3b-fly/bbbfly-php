@@ -2,8 +2,9 @@
 class bbbfly_AppLoader
 {
   protected static $_Options = array(
-    'appName','appVersion','appCopyrights','message',
-    'colors','backColor','frontColor',
+    'appName','appVersion','appCopyrights',
+    'loadMessage','errorMessage','reloadText',
+    'colors','backColor','frontColor','errorColor','reloadColor',
     'img','imgUrl','imgWidth','imgHeight'
   );
 
@@ -11,10 +12,14 @@ class bbbfly_AppLoader
   private $_appVersion = null;
   private $_appCopyrights = null;
 
-  private $_message = 'Loading...';
+  private $_loadMessage = 'Loading...';
+  private $_errorMessage = 'Loading Failed';
+  private $_reloadText = 'Reload';
 
   private $_backColor = '#ffffff';
   private $_frontColor = '#000000';
+  private $_errorColor = '#ffffff';
+  private $_reloadColor = '#ffffff';
 
   private $_imgUrl = null;
   private $_imgWidth = 0;
@@ -38,10 +43,15 @@ class bbbfly_AppLoader
       case 'appName': return $this->_appName;
       case 'appVersion': return $this->_appVersion;
       case 'appCopyrights': return $this->_appCopyrights;
-      case 'message': return $this->_message;
+
+      case 'loadMessage': return $this->_loadMessage;
+      case 'errorMessage': return $this->_errorMessage;
+      case 'reloadText': return $this->_reloadText;
 
       case 'backColor': return $this->_backColor;
       case 'frontColor': return $this->_frontColor;
+      case 'errorColor': return $this->_errorColor;
+      case 'reloadColor': return $this->_reloadColor;
 
       case 'imgUrl': return $this->_imgUrl;
       case 'imgWidth': return $this->_imgWidth;
@@ -49,7 +59,9 @@ class bbbfly_AppLoader
 
       case 'colors': return array(
         'back' => $this->backColor,
-        'front' => $this->frontColor
+        'front' => $this->frontColor,
+        'error' => $this->errorColor,
+        'reload' => $this->reloadColor
       );
 
       case 'img': return array(
@@ -67,10 +79,15 @@ class bbbfly_AppLoader
       case 'appName': if(is_string($value)){$this->_appName = $value;} break;
       case 'appVersion': if(is_string($value)){$this->_appVersion = $value;} break;
       case 'appCopyrights': if(is_string($value)){$this->_appCopyrights = $value;} break;
-      case 'message': if(is_string($value)){$this->_message = $value;} break;
+
+      case 'loadMessage': if(is_string($value)){$this->_loadMessage = $value;} break;
+      case 'errorMessage': if(is_string($value)){$this->_errorMessage = $value;} break;
+      case 'reloadText': if(is_string($value)){$this->_reloadText = $value;} break;
 
       case 'backColor': if(self::isColor($value)){$this->_backColor = $value;} break;
       case 'frontColor': if(self::isColor($value)){$this->_frontColor = $value;} break;
+      case 'errorColor': if(self::isColor($value)){$this->_errorColor = $value;} break;
+      case 'reloadColor': if(self::isColor($value)){$this->_reloadColor = $value;} break;
 
       case 'imgUrl': if(is_string($value)){$this->_imgUrl = $value;} break;
       case 'imgWidth': if(is_int($value)){$this->_imgWidth = $value;} break;
@@ -85,6 +102,8 @@ class bbbfly_AppLoader
     if(is_array($colors)){
       if(isset($colors['back'])){$this->backColor = $colors['back'];}
       if(isset($colors['front'])){$this->frontColor = $colors['front'];}
+      if(isset($colors['error'])){$this->errorColor = $colors['error'];}
+      if(isset($colors['reload'])){$this->reloadColor = $colors['reload'];}
     }
   }
 
@@ -130,18 +149,7 @@ class bbbfly_AppLoader
             color: <?= $this->frontColor; ?>;
           }
 
-          #bbbflyAppLoaderMessage {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            width: 240px;
-            margin-left: -120px;
-            margin-top: 40px;
-            text-align: left;
-            font-size: 10px;
-          }
-
-          .bbbflyAppLoaderVersion {
+          #bbbflyAppLoaderVersion {
             position: absolute;
             left: 50%;
             top: 50%;
@@ -151,7 +159,7 @@ class bbbfly_AppLoader
             font-size: 10px;
           }
 
-          .bbbflyAppLoaderCopyrights {
+          #bbbflyAppLoaderCopyrights {
             position: absolute;
             left: 0;
             bottom: 50px;
@@ -159,21 +167,67 @@ class bbbfly_AppLoader
             font-size: 10px;
           }
 
-          .bbbflyAppLoaderBar {
+          #bbbflyAppLoaderLoad {
             position: absolute;
             left: 50%;
             top: 50%;
             width: 240px;
-            height: 2px;
             margin-left: -120px;
-            margin-top: 60px;
+            margin-top: 40px;
           }
 
-          #bbbflyAppLoaderProgress {
+          #bbbflyAppLoaderLoadMessage {
+            text-align: left;
+            font-size: 10px;
+          }
+
+          #bbbflyAppLoaderLoadBar {
+            width: 100%;
+            height: 2px;
+            margin-top: 10px;
+          }
+
+          #bbbflyAppLoaderLoadProgress {
             position:absolute;
             width: 0;
             height: 2px;
             background-color: <?= $this->frontColor; ?>;
+          }
+
+          #bbbflyAppLoaderError {
+            position: absolute;
+            display: none;
+            left: 50%;
+            top: 50%;
+            width: 240px;
+            margin-left: -120px;
+            margin-top: 40px;
+          }
+
+          #bbbflyAppLoaderErrorMessage {
+            font-size: 10px;
+            text-align: left;
+            color: <?= $this->errorColor; ?>;
+          }
+
+          #bbbflyAppLoaderErrorReload {
+            margin-top: 10px;
+            cursor: pointer;
+          }
+
+          #bbbflyAppLoaderErrorReload span{
+            display: block;
+            padding: 5px;
+            font-size: 10px;
+            text-align: center;
+            color: <?= $this->reloadColor; ?>;
+            border: 1px solid <?= $this->reloadColor; ?>;
+          }
+
+          #bbbflyAppLoaderErrorReload:hover span{
+            font-weight: bold;
+            color: <?= $this->backColor; ?>;
+            background-color: <?= $this->reloadColor; ?>;
           }
 
           .bbbflyAppLoaderFinished {
@@ -188,7 +242,7 @@ class bbbfly_AppLoader
           }
 
 <?php if(is_string($this->imgUrl)){ ?>
-          .bbbflyAppLoaderImage {
+          #bbbflyAppLoaderImage {
             position: absolute;
             left: 50%;
             top: 50%;
@@ -206,18 +260,41 @@ class bbbfly_AppLoader
 ?>
         <div id="bbbflyAppLoader">
 <?php if(is_string($this->imgUrl)){ ?>
-          <img class="bbbflyAppLoaderImage"
+          <img id="bbbflyAppLoaderImage"
             src="<?= $this->imgUrl; ?>"
             width="<?= $this->imgWidth; ?>" height="<?= $this->imgHeight; ?>"
-            <?= (($this->appName) ? 'alt="'.$this->appName.'"' : ''); ?>/>
+            <?= (($this->appName) ? 'alt="'.$this->appName.'"' : ''); ?>
+          />
 <?php }
       if($this->appVersion){ ?>
-          <div class="bbbflyAppLoaderVersion"><?= $this->appVersion; ?></div>
+          <div id="bbbflyAppLoaderVersion">
+            <?= $this->appVersion; ?>
+          </div>
 <?php } ?>
-          <div id="bbbflyAppLoaderMessage"><?= $this->message; ?></div>
-          <div class="bbbflyAppLoaderBar"><div id="bbbflyAppLoaderProgress"></div></div>
+        <div id="bbbflyAppLoaderLoad">
+          <div id="bbbflyAppLoaderLoadMessage">
+            <?= $this->loadMessage; ?>
+          </div>
+          <div id="bbbflyAppLoaderLoadBar">
+            <div id="bbbflyAppLoaderLoadProgress"></div>
+          </div>
+        </div>
+
+          <div id="bbbflyAppLoaderError">
+            <div id="bbbflyAppLoaderErrorMessage">
+              <?= $this->errorMessage; ?>
+            </div>
+            <div
+              id="bbbflyAppLoaderErrorReload"
+              onclick="window.location.reload()">
+              <span><?= $this->reloadText; ?></span>
+            </div>
+          </div>
+
 <?php if($this->appCopyrights){ ?>
-          <div class="bbbflyAppLoaderCopyrights"><?= $this->appCopyrights; ?></div>
+          <div id="bbbflyAppLoaderCopyrights">
+            <?= $this->appCopyrights; ?>
+          </div>
 <?php } ?>
         </div>
 <?php } } ?>
