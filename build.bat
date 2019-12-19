@@ -1,1 +1,2 @@
-grunt
+call grunt
+pause
