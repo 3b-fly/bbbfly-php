@@ -275,6 +275,12 @@ abstract class bbbfly_RPC
     return $param;
   }
 
+  protected function setParamRule($paramName,$rules){
+    if(is_string($paramName) && is_array($rules)){
+      $this->_paramRules[$paramName] = $rules;
+    }
+  }
+
   protected function validateParams(){
     $valid = true;
 
