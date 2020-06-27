@@ -221,6 +221,17 @@ class bbbfly_AppLibrarian
     return $libDef;
   }
 
+  protected function getLib($libId){
+    if(
+      isset($this->libDefs[$libId])
+      && is_array($this->libDefs[$libId])
+    ){
+      $libDef =& $this->libDefs[$libId];
+      return self::libOpts($libDef['Lib'],$libDef['Version']);
+    }
+    return null;
+  }
+
   protected function currentLib($lib,$prnt){
     if(
       isset($this->libDefs[$lib->id])
@@ -465,19 +476,26 @@ class bbbfly_AppLibrarian
       ){continue;}
 
       $def = $package->def;
+      $lib = $this->getLib($package->pkg->lib);
 
       if(isset($def['Files'])&& is_array($def['Files'])){
-        $this->stackLibFilePaths($def['Files'],$package->path);
+        $this->stackLibFilePaths(
+          $def['Files'],$package->path,$lib->version
+        );
       }
 
       if($debug){
         if(isset($def['DebugFiles'])&& is_array($def['DebugFiles'])){
-          $this->stackLibFilePaths($def['DebugFiles'],$package->path);
+          $this->stackLibFilePaths(
+            $def['DebugFiles'],$package->path,$lib->version
+          );
         }
       }
       else{
         if(isset($def['ReleaseFiles']) && is_array($def['ReleaseFiles'])){
-          $this->stackLibFilePaths($def['ReleaseFiles'],$package->path);
+          $this->stackLibFilePaths(
+            $def['ReleaseFiles'],$package->path,$lib->version
+          );
         }
       }
     }
@@ -485,10 +503,15 @@ class bbbfly_AppLibrarian
     return $this->pathStack->getPaths();
   }
 
-  protected function stackLibFilePaths(&$files,$libPath){
+  protected function stackLibFilePaths(&$files,$libPath,$libVersion){
     if(!is_array($files) || !is_string($libPath)){return;}
 
     foreach($files as $filePath){
+      if($libVersion){
+        $filePath .= (strpos($filePath,'?') === false) ? '?' : '&';
+        $filePath .= 'lib_v='.$libVersion;
+      }
+
       $this->pathStack->addPath(
         self::clientPath($libPath.$filePath)
       );
