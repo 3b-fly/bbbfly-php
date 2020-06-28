@@ -14,7 +14,8 @@ class bbbfly_AppLoader
     'loadMessage','errorMessage','reloadText',
     'width','colors',
     'backColor','frontColor','errorColor','reloadColor',
-    'img','imgUrl','imgWidth','imgHeight'
+    'img','imgUrl','imgWidth','imgHeight',
+    'logo','logoUrl','logoWidth','logoHeight'
   );
 
   private $_appName = null;
@@ -35,6 +36,11 @@ class bbbfly_AppLoader
   private $_imgGap = 0;
   private $_imgWidth = 0;
   private $_imgHeight = 0;
+
+  private $_logoUrl = null;
+  private $_logoGap = 0;
+  private $_logoWidth = 0;
+  private $_logoHeight = 0;
 
   function __construct($options=null){
     $this->setOptions($options);
@@ -70,6 +76,11 @@ class bbbfly_AppLoader
       case 'imgWidth': return $this->_imgWidth;
       case 'imgHeight': return $this->_imgHeight;
 
+      case 'logoUrl': return $this->_logoUrl;
+      case 'logoGap': return $this->_logoGap;
+      case 'logoWidth': return $this->_logoWidth;
+      case 'logoHeight': return $this->_logoHeight;
+
       case 'colors': return array(
         'back' => $this->backColor,
         'front' => $this->frontColor,
@@ -82,6 +93,13 @@ class bbbfly_AppLoader
         'gap' => $this->_imgGap,
         'width' => $this->_imgWidth,
         'height' => $this->_imgHeight
+      );
+
+      case 'logo': return array(
+        'url' => $this->_logoUrl,
+        'gap' => $this->_logoGap,
+        'width' => $this->_logoWidth,
+        'height' => $this->_logoHeight
       );
 
       case 'Options': return self::$_Options;
@@ -109,8 +127,14 @@ class bbbfly_AppLoader
       case 'imgWidth': if(is_int($value)){$this->_imgWidth = $value;} break;
       case 'imgHeight': if(is_int($value)){$this->_imgHeight = $value;} break;
 
+      case 'logoUrl': if(is_string($value)){$this->_logoUrl = $value;} break;
+      case 'logoGap': if(is_int($value)){$this->_logoGap = $value;} break;
+      case 'logoWidth': if(is_int($value)){$this->_logoWidth = $value;} break;
+      case 'logoHeight': if(is_int($value)){$this->_logoHeight = $value;} break;
+
       case 'colors': $this->setColors($value); break;
       case 'img': $this->setImg($value); break;
+      case 'logo': $this->setLogo($value); break;
     }
   }
 
@@ -123,12 +147,21 @@ class bbbfly_AppLoader
     }
   }
 
-    public function setImg($img){
+  public function setImg($img){
     if(is_array($img)){
       if(isset($img['url'])){$this->imgUrl = $img['url'];}
       if(isset($img['gap'])){$this->imgGap = $img['gap'];}
       if(isset($img['width'])){$this->imgWidth = $img['width'];}
       if(isset($img['height'])){$this->imgHeight = $img['height'];}
+    }
+  }
+
+  public function setLogo($logo){
+    if(is_array($logo)){
+      if(isset($logo['url'])){$this->logoUrl = $logo['url'];}
+      if(isset($logo['gap'])){$this->logoGap = $logo['gap'];}
+      if(isset($logo['width'])){$this->logoWidth = $logo['width'];}
+      if(isset($logo['height'])){$this->logoHeight = $logo['height'];}
     }
   }
 
@@ -257,7 +290,7 @@ class bbbfly_AppLoader
             transition: visibility 0s linear 1s,opacity 1s linear;
           }
 
-<?php if(is_string($this->imgUrl)){ ?>
+<?php if($this->imgUrl){ ?>
           #bbbflyAppLoaderImage {
             position: absolute;
             left: 50%;
@@ -268,6 +301,15 @@ class bbbfly_AppLoader
             margin-top: -<?= $this->imgHeight+$this->imgGap; ?>px;
           }
 <?php } ?>
+
+<?php if($this->logoUrl){ ?>
+          #bbbflyAppLoaderLogo {
+            position: relative;
+            width: <?= $this->logoWidth; ?>px;
+            height: <?= $this->logoHeight; ?>px;
+            margin-bottom: <?= $this->logoGap; ?>px;
+          }
+<?php } ?>
         </style>
 <?php
   }
@@ -275,13 +317,15 @@ class bbbfly_AppLoader
   public function buildHTML(){
 ?>
         <div id="bbbflyAppLoader">
-<?php if(is_string($this->imgUrl)){ ?>
+
+<?php if($this->imgUrl){ ?>
           <img id="bbbflyAppLoaderImage"
             src="<?= $this->imgUrl; ?>"
             width="<?= $this->imgWidth; ?>" height="<?= $this->imgHeight; ?>"
             <?= (($this->appName) ? 'alt="'.$this->appName.'"' : ''); ?>
           />
 <?php } ?>
+
           <div id="bbbflyAppLoaderLoad">
             <div id="bbbflyAppLoaderLoadMessage">
               <?= $this->loadMessage; ?>
@@ -302,14 +346,22 @@ class bbbfly_AppLoader
             </div>
           </div>
 
-<?php if($this->appCopyrights){ ?>
           <div id="bbbflyAppLoaderFooter">
+
+<?php if($this->logoUrl){ ?>
+            <img id="bbbflyAppLoaderLogo"
+              src="<?= $this->logoUrl; ?>"
+              width="<?= $this->logoWidth; ?>" height="<?= $this->logoHeight; ?>"
+            />
+<?php } ?>
 
 <?php if($this->appVersion){ ?>
             <div id="bbbflyAppLoaderVersion">
               <?= $this->appVersion; ?>
             </div>
 <?php } ?>
+
+<?php if($this->appCopyrights){ ?>
 
             <div id="bbbflyAppLoaderCopyrights">
               <?= $this->appCopyrights; ?>
