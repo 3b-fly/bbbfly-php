@@ -162,8 +162,8 @@
       if(is_string(self::$_debugPath)){return self::$_debugPath;}
       if(!class_exists('bbbfly_Config',false)){return null;}
 
-      $path = bbbfly_Config::get('ADOdb.Debug.path',$alias);
-      $rotation = bbbfly_Config::get('ADOdb.Debug.rotation',$alias);
+      $path = bbbfly_Config::get($key.'.Debug.path',$alias);
+      $rotation = bbbfly_Config::get($key.'.Debug.rotation',$alias);
       return self::rotateDebugPath($path,$rotation);
     }
 
