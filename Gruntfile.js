@@ -31,11 +31,20 @@ module.exports = function(grunt) {
 
   var packageJSON = grunt.file.readJSON('package.json');
 
+  var normalizeLinebreak = function(text){
+    return text.replace(/(\r\n|\n\r|\r)/g,'\n');
+  };
+
   grunt.initConfig({
     pkg: packageJSON,
     clean: [buildPath],
     copy: {
       files: {
+        options: {
+          process: function(content){
+            return normalizeLinebreak(content);
+          }
+        },
         files: [{
           cwd: srcPath,
           src: src.files,
@@ -44,6 +53,11 @@ module.exports = function(grunt) {
         }]
       },
       license: {
+        options: {
+          process: function(content){
+            return normalizeLinebreak(content);
+          }
+        },
         files: [{
           src: src.license,
           dest: buildPath,
@@ -82,7 +96,12 @@ module.exports = function(grunt) {
     },
     usebanner: {
       options: {
-        banner: grunt.file.read('HEADER')
+        linebreak: false,
+        process: function(){
+          var banner = grunt.file.read('HEADER');
+          banner = grunt.template.process(banner);
+          return normalizeLinebreak(banner+'\n');
+        }
       },
       files: {
         cwd: buildPath,
