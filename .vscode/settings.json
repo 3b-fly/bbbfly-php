@@ -7,8 +7,8 @@
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
         "nbproject": true,
-        "build": false,
-        ".vscode": false,
+        "build": true,
+        ".vscode": true,
         "node_jar": true,
         "node_modules": true
     },
