@@ -2,7 +2,7 @@ module.exports = function(grunt) {
   var srcPath = 'src';
   var buildPath = 'build';
 
-  var lib = {
+  var src = {
     files: ['*.php','*/*.php'],
     license: 'LICENSE'
   };
@@ -31,32 +31,54 @@ module.exports = function(grunt) {
 
   var packageJSON = grunt.file.readJSON('package.json');
 
+  var normalizeLinebreak = function(text){
+    return text.replace(/(\r\n|\n\r|\r)/g,'\n');
+  };
+
   grunt.initConfig({
     pkg: packageJSON,
     clean: [buildPath],
     copy: {
       files: {
+        options: {
+          process: function(content){
+            return normalizeLinebreak(content);
+          }
+        },
         files: [{
           cwd: srcPath,
-          src: [].concat(lib.files,adodb.files,geoPHP.files),
+          src: src.files,
           dest: buildPath,
           expand: true
         }]
       },
-      licenses: {
-        files: [
-          {
-            src: lib.license,
-            dest: buildPath,
-            expand: true
-          },
-          {
-            cwd: srcPath,
-            src: [].concat(adodb.license,geoPHP.license),
-            dest: buildPath,
-            expand: true
+      license: {
+        options: {
+          process: function(content){
+            return normalizeLinebreak(content);
           }
-        ]
+        },
+        files: [{
+          src: src.license,
+          dest: buildPath,
+          expand: true
+        }]
+      },
+      libs_files: {
+        files: [{
+          cwd: srcPath,
+          src: [].concat(adodb.files,geoPHP.files),
+          dest: buildPath,
+          expand: true
+        }]
+      },
+      libs_license: {
+        files: [{
+          cwd: srcPath,
+          src: [].concat(adodb.license,geoPHP.license),
+          dest: buildPath,
+          expand: true
+        }]
       }
     },
     comments: {
@@ -66,7 +88,7 @@ module.exports = function(grunt) {
       remove: {
         files: [{
           cwd: buildPath,
-          src: lib.files,
+          src: src.files,
           dest: buildPath,
           expand: true
         }]
@@ -74,11 +96,16 @@ module.exports = function(grunt) {
     },
     usebanner: {
       options: {
-        banner: grunt.file.read('HEADER')
+        linebreak: false,
+        process: function(){
+          var banner = grunt.file.read('HEADER');
+          banner = grunt.template.process(banner);
+          return normalizeLinebreak(banner+'\n');
+        }
       },
       files: {
         cwd: buildPath,
-        src: lib.files,
+        src: src.files,
         dest: buildPath,
         expand: true
       }
@@ -86,10 +113,10 @@ module.exports = function(grunt) {
   });
 
   grunt.registerTask('default',[
-    'clean','copy:files',
-    'comments:remove',
-    'usebanner',
-    'copy:licenses'
+    'clean',
+    'copy:files','copy:libs_files',
+    'comments:remove','usebanner',
+    'copy:license','copy:libs_license'
   ]);
 
   grunt.loadNpmTasks('grunt-contrib-clean');
