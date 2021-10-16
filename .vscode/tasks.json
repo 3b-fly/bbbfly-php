@@ -3,13 +3,13 @@
 	"tasks": [
 		{
 			"type": "grunt",
-			"task": "default",
-			"problemMatcher": [],
-			"label": "grunt: default",
+			"task": "build",
 			"group": {
 				"kind": "build",
 				"isDefault": true
-			}
+			},
+			"problemMatcher": [],
+			"label": "grunt: build"
 		}
 	]
 }
