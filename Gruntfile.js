@@ -112,12 +112,14 @@ module.exports = function(grunt) {
     }
   });
 
-  grunt.registerTask('default',[
+  grunt.registerTask('build',[
     'clean',
     'copy:files','copy:libs_files',
     'comments:remove','usebanner',
     'copy:license','copy:libs_license'
   ]);
+
+  grunt.registerTask('default','build');
 
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-copy');

@@ -1,2 +1,2 @@
-call grunt
+call grunt build
 pause
