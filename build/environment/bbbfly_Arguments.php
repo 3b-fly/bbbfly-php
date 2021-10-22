@@ -29,7 +29,7 @@ class bbbfly_Arguments
       for($i=1;$i<$argc;$i++){
         $arg = explode('=',$argv[$i]);
         switch(count($arg)){
-          case 0: continue;
+          case 0: break;
           case 1:
             self::$arguments[trim($arg[0])] = true;
           break;
