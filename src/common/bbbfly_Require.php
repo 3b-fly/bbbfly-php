@@ -43,15 +43,19 @@ class bbbfly_Require
     }
   }
 
-  public static function syncIncludePaths(){
+  public static function syncIncludePaths($addLibDirs=false){
     if(!self::$needSync){return;}
 
     $paths = explode(PATH_SEPARATOR,get_include_path());
     $paths = array_fill_keys(self::normalizePath($paths),true);
 
     $paths['.'] = true;
-    $paths[self::rootPath(self::$props['PHPDir'])] = true;
-    $paths[self::rootPath(self::$props['LibsDir'])] = true;
+    $paths[self::rootPath()] = true;
+
+    if($addLibDirs){
+      $paths[self::rootPath(self::$props['PHPDir'])] = true;
+      $paths[self::rootPath(self::$props['LibsDir'])] = true;
+    }
 
     ini_set('include_path',implode(PATH_SEPARATOR,array_keys($paths)));
 
