@@ -51,7 +51,7 @@ class bbbfly_Require
     }
   }
 
-  protected static function syncIncludePaths(){
+  public static function syncIncludePaths(){
     if(!self::$needSync){return;}
 
     $paths = explode(PATH_SEPARATOR,get_include_path());
