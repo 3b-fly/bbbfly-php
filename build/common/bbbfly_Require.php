@@ -70,7 +70,7 @@ class bbbfly_Require
     self::$needSync = false;
   }
 
-  protected static function rootPath($path=''){
+  public static function rootPath($path=''){
     $rootPath = '';
 
     if(bbbfly_Arguments::get('native')){
@@ -87,7 +87,7 @@ class bbbfly_Require
     return self::normalizePath($rootPath);
   }
 
-  protected static function normalizePath($path){
+  public static function normalizePath($path){
     if(is_string($path)){
       return str_replace(array('/','\\'),DIRECTORY_SEPARATOR,$path);
     }
