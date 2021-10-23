@@ -1,4 +1,6 @@
 <?php
+require_once(dirname(__FILE__).'/../common/bbbfly_Require.php');
+
 class bbbfly_AppLibrarian
 {
   const DEF_FILENAME_APP = 'controls-app.json';
@@ -568,12 +570,14 @@ class bbbfly_AppLibrarian
   }
 
   protected static function serverPath($path){
-    if(is_string($path)){
-      $path = str_replace(
-        array('\\','/'),DIRECTORY_SEPARATOR,$path
-      );
-    }
-    return $path;
+    if(!is_string($path)){return $path;}
+
+    $pattern = '~^([a-zA-Z]:)?[\\|\/]~';
+    $isAbs = preg_match($pattern,$path);
+
+    return $isAbs
+      ? bbbfly_Require::normalizePath($path)
+      : bbbfly_Require::rootPath($path);
   }
 
   protected static function clientPath($path){
