@@ -542,7 +542,7 @@ class bbbfly_AppLibrarian
 
   protected static function serverFilePath($path){
     if(is_string($path)){
-      $filePath = realpath(self::serverPath($filePath));
+      $filePath = realpath(self::serverPath($path));
 
       if(is_string($filePath) && is_file($filePath)){
         return $filePath;
