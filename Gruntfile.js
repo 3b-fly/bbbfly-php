@@ -32,7 +32,7 @@ module.exports = function(grunt) {
   var packageJSON = grunt.file.readJSON('package.json');
 
   var normalizeLinebreak = function(text){
-    return text.replace(/(\r\n|\n\r|\r)/g,'\n');
+    return text.replace(/( |\t)*(\r\n|\n\r|\r|\n)/g,'\n');
   };
 
   grunt.initConfig({
