@@ -240,7 +240,6 @@ class bbbfly_AppIndex
     if(isset($options['appCopyrights']) && is_string($options['appCopyrights'])){self::$appCopyrights = $options['appCopyrights'];}
 
     if(isset($options['theme'])){self::setTheme($options['theme']);}
-    if(isset($options['icons'])){self::setIcons($options['icons']);}
     if(isset($options['loader'])){self::setLoader($options['loader']);}
 
     if(isset($options['debug'])){self::setDebug($options['debug']);}
