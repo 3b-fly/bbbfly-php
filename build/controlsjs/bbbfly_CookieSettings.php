@@ -6,6 +6,7 @@
  * @license see license in 'LICENSE' file
 */
 ?>
+
 <?php
 class bbbfly_CookieSettings
 {

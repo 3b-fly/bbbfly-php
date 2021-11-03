@@ -6,6 +6,7 @@
  * @license see license in 'LICENSE' file
 */
 ?>
+
 <?php
 require_once(dirname(__FILE__).'/bbbfly_RPC.php');
 require_once(dirname(__FILE__).'/../adodb/bbbfly_ADOdb_Connection.php');

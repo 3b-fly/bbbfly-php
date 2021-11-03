@@ -6,6 +6,7 @@
  * @license see license in 'LICENSE' file
 */
 ?>
+
 <?php
 require_once(dirname(__FILE__).'/bbbfly_AppLoader.php');
 require_once(dirname(__FILE__).'/../environment/bbbfly_Arguments.php');

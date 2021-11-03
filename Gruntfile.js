@@ -1,4 +1,6 @@
 module.exports = function(grunt) {
+  var path = require('path');
+
   var srcPath = 'src';
   var buildPath = 'build';
 
@@ -97,9 +99,14 @@ module.exports = function(grunt) {
     usebanner: {
       options: {
         linebreak: false,
-        process: function(){
+        process: function(file){
           var banner = grunt.file.read('HEADER');
           banner = grunt.template.process(banner);
+
+          if(path.extname(file) === '.php'){
+            banner = '<?php\n'+banner+'?>\n'
+          }
+          
           return normalizeLinebreak(banner+'\n');
         }
       },

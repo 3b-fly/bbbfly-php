@@ -6,6 +6,7 @@
  * @license see license in 'LICENSE' file
 */
 ?>
+
 <?php
   require_once(dirname(__FILE__).'/geoPHP_1.2/geoPHP.php');
 
