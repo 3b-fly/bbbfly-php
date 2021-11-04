@@ -98,16 +98,14 @@ module.exports = function(grunt) {
     },
     usebanner: {
       options: {
+        position: 'replace',
+        replace: /\<\?php/i,
+
         linebreak: false,
-        process: function(file){
+        process: function(){
           var banner = grunt.file.read('HEADER');
           banner = grunt.template.process(banner);
-
-          if(path.extname(file) === '.php'){
-            banner = '<?php\n'+banner+'?>\n'
-          }
-          
-          return normalizeLinebreak(banner+'\n');
+          return normalizeLinebreak('<?php\n'+banner);
         }
       },
       files: {

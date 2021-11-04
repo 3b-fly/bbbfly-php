@@ -5,9 +5,7 @@
  * @version 1.0.0
  * @license see license in 'LICENSE' file
 */
-?>
 
-<?php
 require_once(dirname(__FILE__).'/../environment/bbbfly_INI.php');
 
 class bbbfly_Upload

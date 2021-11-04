@@ -5,9 +5,7 @@
  * @version 1.0.0
  * @license see license in 'LICENSE' file
 */
-?>
 
-<?php
 class bbbfly_Arguments
 {
   protected static $initialized = false;

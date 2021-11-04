@@ -5,9 +5,7 @@
  * @version 1.0.0
  * @license see license in 'LICENSE' file
 */
-?>
 
-<?php
   require_once(dirname(__FILE__).'/adodb_5.20.12/adodb-exceptions.inc.php');
   require_once(dirname(__FILE__).'/adodb_5.20.12/adodb.inc.php');
 

@@ -5,9 +5,7 @@
  * @version 1.0.0
  * @license see license in 'LICENSE' file
 */
-?>
 
-<?php
 class bbbfly_DateTime extends DateTime
 {
   const BI_CALENDAR_GREGORIAN = 1;
