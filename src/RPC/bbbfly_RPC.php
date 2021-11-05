@@ -494,6 +494,10 @@ abstract class bbbfly_RPC
   protected function startOutput(){
     $this->outputHeaders();
 
+    if($this->outputFile){
+      ob_clean();
+    }
+
     if($this->canBuffer()){
       ob_start();
       ob_implicit_flush(false);
