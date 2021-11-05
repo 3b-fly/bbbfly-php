@@ -499,15 +499,18 @@ abstract class bbbfly_RPC
   }
 
   protected function startOutput(){
-    ob_start();
     $this->outputHeaders();
 
-    if(!$this->canBuffer()){
+    if($this->canBuffer()){
+      ob_start();
+      ob_implicit_flush(false);
+    }
+    else{
       ini_set('zlib.output_compression','Off');
       ini_set('output_buffering ','0');
       ini_set('implicit_flush','1');
 
-      ob_end_flush();
+      ob_flush();
       ob_implicit_flush(true);
     }
 
@@ -539,6 +542,11 @@ abstract class bbbfly_RPC
           );
         }
       break;
+    }
+
+    if($this->canBuffer()){
+      ob_flush();
+      ob_end_clean();
     }
   }
 
