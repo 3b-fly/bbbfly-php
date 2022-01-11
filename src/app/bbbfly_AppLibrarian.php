@@ -572,7 +572,7 @@ class bbbfly_AppLibrarian
   protected static function serverPath($path){
     if(!is_string($path)){return $path;}
 
-    $pattern = '~^([a-zA-Z]:)?[\\|\/]~';
+    $pattern = '~^([a-zA-Z]:)?[\\\|\\/].+~';
     $isAbs = preg_match($pattern,$path);
 
     return $isAbs
@@ -810,7 +810,7 @@ class bbbfly_AppLibrarian_Error extends Exception
   protected $options = null;
 
   public function __construct($code,$options){
-    parent::__construct(null,$code);
+    parent::__construct('',$code);
     $this->options =& $options;
   }
 
