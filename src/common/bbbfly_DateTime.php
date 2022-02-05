@@ -3,8 +3,16 @@ class bbbfly_DateTime extends DateTime
 {
   const BI_CALENDAR_GREGORIAN = 1;
 
-  public function __construct($time='now'){
-    parent::__construct($time,new DateTimeZone('UTC'));
+  protected static $biTimezone = null;
+
+  public function __construct($datetime='now',$timezone=null){
+    self::$biTimezone = new DateTimeZone('UTC');
+
+    if(!($timezone instanceof DateTimeZone)){
+      $timezone = self::$biTimezone;
+    }
+
+    parent::__construct($datetime,$timezone);
   }
 
   public function setBigInt($biString){
@@ -26,8 +34,10 @@ class bbbfly_DateTime extends DateTime
 
     switch($parts[2]){
       case self::BI_CALENDAR_GREGORIAN:
+
         $errorLevel = error_reporting(0);
-        $this->setTimezone('UTC');
+        $timeZone = $this->getTimezone();
+        $this->setTimezone(self::$biTimezone);
         error_reporting($errorLevel);
 
         $year = (double)$parts[3];
@@ -40,6 +50,10 @@ class bbbfly_DateTime extends DateTime
 
         $this->setDate($year,$month,$day);
         $this->setTime($hour,$minute,0);
+
+        $errorLevel = error_reporting(0);
+        $this->setTimezone($timeZone);
+        error_reporting($errorLevel);
       return true;
     }
     return false;
@@ -48,11 +62,22 @@ class bbbfly_DateTime extends DateTime
   public function toBigInt(){
     $calendar = self::BI_CALENDAR_GREGORIAN;
 
+    $errorLevel = error_reporting(0);
+    $timeZone = $this->getTimezone();
+    $this->setTimezone(self::$biTimezone);
+    error_reporting($errorLevel);
+
     $year = $this->format('Y');
     $before = (substr($year,0,1) === '-') ? '-' : '';
     if($before){$year = substr($year,1);}
     $year = sprintf("%010d",$year);
 
-    return $before.$calendar.$year.$this->format('mdHi');
+    $bi = $before.$calendar.$year.$this->format('mdHi');
+
+    $errorLevel = error_reporting(0);
+    $this->setTimezone($timeZone);
+    error_reporting($errorLevel);
+
+    return $bi;
   }
 }
