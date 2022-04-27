@@ -9,7 +9,7 @@
   },
   "license": "see license in 'LICENSE' file",
   "dependencies": {
-    "grunt": "^1.4.1",
+    "grunt": "^1.5.2",
     "grunt-banner": "^0.6.0",
     "grunt-cli": "^1.4.3",
     "grunt-contrib-clean": "^2.0.0",
