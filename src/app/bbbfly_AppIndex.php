@@ -1,6 +1,7 @@
 <?php
 require_once(dirname(__FILE__).'/bbbfly_AppLoader.php');
 require_once(dirname(__FILE__).'/../environment/bbbfly_Arguments.php');
+require_once(dirname(__FILE__).'/../auth/bbbfly_Auth.php');
 
 class bbbfly_AppIndex
 {
@@ -28,6 +29,7 @@ class bbbfly_AppIndex
 
   protected static $themeOptions = null;
   protected static $loaderOptions = null;
+  protected static $authOptions = null;
 
   private function __construct(){}
 
@@ -209,6 +211,13 @@ class bbbfly_AppIndex
     }
   }
 
+  public static function setAuth($options,$merge=true){
+    if(is_array($options)){
+      self::$authOptions = (is_array(self::$authOptions) && $merge)
+        ? self::mergeArrays(self::$authOptions,$options) : $options;
+    }
+  }
+
   public static function processArgs(){
     $args = bbbfly_Arguments::getAll();
 
@@ -233,6 +242,7 @@ class bbbfly_AppIndex
 
     if(isset($options['theme'])){self::setTheme($options['theme']);}
     if(isset($options['loader'])){self::setLoader($options['loader']);}
+    if(isset($options['auth'])){self::setAuth($options['auth']);}
 
     if(isset($options['debug'])){self::setDebug($options['debug']);}
     if(isset($options['nativeBuild'])){self::setNativeBuild($options['nativeBuild']);}
@@ -300,6 +310,8 @@ class bbbfly_AppIndex
 <?php self::buildLoader(self::$loaderOptions,false,true); ?>
 
 <?php self::buildInitContent(self::$initFiles,self::$fileSources); ?>
+
+<?php self::buildAuth(self::$authOptions); ?>
 
 <?php self::buildJS(); ?>
 
@@ -399,6 +411,12 @@ class bbbfly_AppIndex
     $loader = new bbbfly_AppLoader($options);
     if($buildCss){$loader->buildCSS();}
     if($buildHtml){$loader->buildHTML();}
+  }
+
+  protected static function buildAuth($opts){
+    $auth = new bbbfly_Auth($opts);
+    $auth->useConfig();
+    $auth->buildJS();
   }
 
   protected static function buildJS(){
