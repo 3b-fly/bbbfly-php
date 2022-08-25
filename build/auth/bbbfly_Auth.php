@@ -6,21 +6,21 @@
  * @license see license in 'LICENSE' file
 */
 
+require_once(dirname(__FILE__).'/bbbfly_Auth_Handler.php');
+require_once(dirname(__FILE__).'/bbbfly_Auth_UserData.php');
 
 class bbbfly_Auth
 {
   const METHOD_NONE = 0;
   const METHOD_BASIC = 1;
 
-  private $_Method = self::METHOD_NONE;
-  private $_Authenticated = false;
-  private $_UserData = null;
+  private static $Method = self::METHOD_NONE;
+  private static $Handlers = array();
 
-  function __construct($options=null){
-    $this->setOptions($options);
-  }
+  private static $Authenticated = false;
+  private static $UserData = null;
 
-  public function useConfig($key='Auth',$alias='default'){
+  public static function useConfig($key='Auth',$alias='default'){
     if(class_exists('bbbfly_Config',false)){
       self::setOptions(bbbfly_Config::get($key,$alias));
     }
@@ -29,36 +29,51 @@ class bbbfly_Auth
     }
   }
 
-  public function __get($propName){
-    switch($propName){
-      case 'Method': return $this->_Method;
-      case 'Authenticated': return $this->_Authenticated;
-      case 'UserData': return $this->_UserData;
-    }
+  public static function setOptions($ops){
+    if(isset($ops['Method'])){self::setProp('Method',$ops['Method']);}
+    return $this;
   }
 
-  public function __set($propName,$value){
+  protected static function setProp($propName,$value){
     switch($propName){
       case 'Method':
         switch($value){
           case self::METHOD_NONE:
           case 'none':
-            $this->_Method = self::METHOD_NONE;
+            self::$Method = self::METHOD_NONE;
           case self::METHOD_BASIC:
           case 'basic':
-            $this->_Method = self::METHOD_BASIC;
+            self::$Method = self::METHOD_BASIC;
           break;
         }
       break;
     }
   }
 
-  public function setOptions($options){
-    if(isset($options['Method'])){$this->Method = $options['Method'];}
-    return $this;
+  protected static function getHandler(){
+    $handlers =& self::$Handlers;
+    $method = self::$Method;
+
+    if(isset($handlers[$method])){
+      return $handlers[$method];
+    }
+
+    $handler = null;
+
+    switch($method){
+      case self::METHOD_BASIC:
+        require_once(dirname(__FILE__).'/bbbfly_Auth_Handler_Basic.php');
+        $handler = new bbbfly_Auth_Handler_Basic();
+      break;
+    }
+
+    if($handler instanceof bbbfly_Auth_Handler){
+      $handlers[$method] = $handler;
+    }
+    return $handler;
   }
 
-  protected function getClientIPAddress(){
+  protected static function getClientIPAddress(){
     if(isset($_SERVER['HTTP_CLIENT_IP'])){
       return $_SERVER['HTTP_CLIENT_IP'];
     }
@@ -71,61 +86,36 @@ class bbbfly_Auth
     return null;
   }
 
-  protected function authenticate(){
-    if($this->Authenticated){return;}
+  public static function authenticate(){
+    if(self::$Authenticated){return;}
 
-    switch($this->Method){
-      case self::METHOD_BASIC:
+    self::$UserData = null;
+    $handler = self::gatHandler();
 
-        if(isset($_SERVER['PHP_AUTH_USER'])){
-          $data = new bbbfly_Auth_UserData();
-          $data->Id = $_SERVER['PHP_AUTH_USER'];
-          $data->Name = $_SERVER['PHP_AUTH_USER'];
-          $data->IPAddr = $this->getClientIPAddress();
+    if($handler instanceof bbbfly_Auth_Handler){
+      $data = $handler->authenticate();
 
-          $this->_UserData = $data;
-        }
-      break;
+      if($data instanceof bbbfly_Auth_UserData){
+        self::$UserData = $data;
+      }
     }
-    $this->_Authenticated = true;
+
+    self::$Authenticated = true;
   }
 
-  protected function getAuthData(){
-    $this->authenticate();
+  public static function getAuthData(){
+    self::authenticate();
 
     $data = new stdClass();
-    $data->Method = $this->Method;
-    $data->Authenticated = $this->Authenticated;
-    $data->UserData = $this->UserData;
+    $data->Method = self::$Method;
+    $data->Authenticated = self::$Authenticated;
+    $data->UserData = self::$UserData;
     return json_encode($data);
   }
 
-  public function buildJS(){
-?>
-    <script type="text/javascript">
-      if(bbbfly){bbbfly.AuthData = <?= $this->getAuthData(); ?>;}
-    </script>
-<?php
-  }
-}
-
-class bbbfly_Auth_UserData
-{
-  public $Id = null;
-  public $Name = null;
-  public $IPAddr = null;
-
-  public $SurName = null;
-  public $PhoneNumber = null;
-
-  public function __set($propName,$value){
-    switch($propName){
-      case 'Id': $this->Id = $value;
-      case 'Name': $this->Name = $value;
-      case 'IPAddr': $this->IPAddr = $value;
-
-      case 'SurName': $this->SurName = $value;
-      case 'PhoneNumber': $this->PhoneNumber = $value;
-    }
+  public static function buildJS(){
+    return '<script type="text/javascript">'
+      .'if(bbbfly){bbbfly.AuthData = '.self::getAuthData().';}'
+    .'</script>';
   }
 }

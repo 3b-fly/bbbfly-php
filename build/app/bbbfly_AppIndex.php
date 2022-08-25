@@ -421,9 +421,10 @@ class bbbfly_AppIndex
   }
 
   protected static function buildAuth($opts){
-    $auth = new bbbfly_Auth($opts);
-    $auth->useConfig();
-    $auth->buildJS();
+    bbbfly_Auth::setOptions($opts);
+    bbbfly_Auth::useConfig();
+
+    print bbbfly_Auth::buildJS();
   }
 
   protected static function buildJS(){
