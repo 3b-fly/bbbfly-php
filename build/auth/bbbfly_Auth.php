@@ -31,7 +31,6 @@ class bbbfly_Auth
 
   public static function setOptions($ops){
     if(isset($ops['Method'])){self::setProp('Method',$ops['Method']);}
-    return $this;
   }
 
   protected static function setProp($propName,$value){
@@ -90,7 +89,7 @@ class bbbfly_Auth
     if(self::$Authenticated){return;}
 
     self::$UserData = null;
-    $handler = self::gatHandler();
+    $handler = self::getHandler();
 
     if($handler instanceof bbbfly_Auth_Handler){
       $data = $handler->authenticate();

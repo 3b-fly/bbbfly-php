@@ -12,7 +12,7 @@ class bbbfly_Auth_Handler_Basic extends bbbfly_Auth_Handler
         $data = new bbbfly_Auth_UserData();
         $data->Id = $name;
         $data->Name = $name;
-        $data->IPAddr = $this->getClientIPAddress();
+        $data->IPAddr = self::getClientIPAddress();
         return $data;
       }
     }
