@@ -72,19 +72,6 @@ class bbbfly_Auth
     return $handler;
   }
 
-  protected static function getClientIPAddress(){
-    if(isset($_SERVER['HTTP_CLIENT_IP'])){
-      return $_SERVER['HTTP_CLIENT_IP'];
-    }
-    if(isset($_SERVER['HTTP_X_FORWARDED_FOR'])){
-      return $_SERVER['HTTP_X_FORWARDED_FOR'];
-    }
-    if(isset($_SERVER['REMOTE_ADDR'])){
-      return $_SERVER['REMOTE_ADDR'];
-    }
-    return null;
-  }
-
   public static function authenticate(){
     if(self::$Authenticated){return;}
 
