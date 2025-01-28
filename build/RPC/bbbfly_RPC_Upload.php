@@ -46,23 +46,24 @@ abstract class bbbfly_RPC_Upload extends bbbfly_RPC
     $uploader = new bbbfly_Upload($this->uploadOptions);
 
     $resultData = array();
-    switch($uploader->upload()){
-      case bbbfly_Upload::UPLOAD_ERROR_NONE:
-      case bbbfly_Upload::UPLOAD_ERROR_FILE:
+    switch($uploader->processFiles()){
+      case bbbfly_Upload::PROCESS_ERROR_NONE:
+      case bbbfly_Upload::PROCESS_ERROR_FILE:
         $result = $uploader->Result;
         if(is_array($result)){
+
           foreach($result as $fileResult){
             $resultItem = new stdClass();
-            $resultItem->Name = $fileResult['name'];
+            $resultItem->Name = $fileResult->name;
 
-            switch($fileResult['error']){
-              case bbbfly_Upload::UPLOAD_ERROR_FILE_NONE:
-                $resultItem->Id = $fileResult['file_id'];
+            switch($fileResult->error){
+              case bbbfly_Upload::FILE_ERROR_NONE:
+                $resultItem->Id = $fileResult->id;
               break;
-              case bbbfly_Upload::UPLOAD_ERROR_FILE_SIZE:
+              case bbbfly_Upload::FILE_ERROR_SIZE:
                 $resultItem->Error = self::ERROR_TYPE_SIZE;
               break;
-              case bbbfly_Upload::UPLOAD_ERROR_FILE_EXTENSION:
+              case bbbfly_Upload::FILE_ERROR_EXTENSION:
                 $resultItem->Error = self::ERROR_TYPE_EXTENSION;
               break;
               default:
