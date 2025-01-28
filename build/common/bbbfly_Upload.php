@@ -28,10 +28,7 @@ class bbbfly_Upload extends bbbfly_File
   protected function options(){
     return array_merge(
       parent::options(),
-      array(
-        'uploadDir',
-        'filesExpiration'
-      )
+      array('uploadDir','filesExpiration')
     );
   }
 
@@ -91,14 +88,8 @@ class bbbfly_Upload extends bbbfly_File
 
   protected function processFile($name,$tmp_name,$type,$size,$error){
     $result = parent::processFile($name,$tmp_name,$type,$size,$error);
-error_log('PROCESS '.var_export(array(
-  'ErrorCode' => $this->ErrorCode,
-  'self none' => self::PROCESS_ERROR_NONE,
-  'parent none' => parent::PROCESS_ERROR_NONE,
-  'file none' => bbbfly_File::PROCESS_ERROR_NONE
-),true)); //TODO
     if($this->ErrorCode !== self::PROCESS_ERROR_NONE){return $result;}
-error_log('DO PROCESS'); //TODO
+
     $errorLevel = error_reporting(0);
     $timeZone = date_default_timezone_get();
     date_default_timezone_set('UTC');
@@ -113,7 +104,7 @@ error_log('DO PROCESS'); //TODO
     $uniq = 1;
     $fileExists = true;
     $filePath = null;
-error_log('GET ID'); //TODO
+
     while($fileExists){
       $resFileId = $fileId.'_'.$uniq.'_'.$ext;
 
@@ -126,7 +117,7 @@ error_log('GET ID'); //TODO
         $fileExists = false;
       }
     }
-error_log('MOVE'); //TODO
+
     if(!move_uploaded_file($tmp_name,$filePath)){
       $result->error = self::FILE_ERROR_MOVE;
       $this->ErrorCode = self::PROCESS_ERROR_FILE;

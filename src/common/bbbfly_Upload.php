@@ -21,10 +21,7 @@ class bbbfly_Upload extends bbbfly_File
   protected function options(){
     return array_merge(
       parent::options(),
-      array(
-        'uploadDir',
-        'filesExpiration'
-      )
+      array('uploadDir','filesExpiration')
     );
   }
 
