@@ -639,7 +639,7 @@ abstract class bbbfly_RPC
     $fileName = $this->fileName;
     if(!is_string($fileName)){$fileName = basename($filePath);}
 
-    header('Content-Disposition: attachment; filename='.$fileName);
+    header('Content-Disposition: attachment; filename="'.$fileName.'"');
     header('Content-Length:'.filesize($filePath));
 
     if($this->xSendFile){
