@@ -197,6 +197,7 @@ class bbbfly_AppLoader
             bottom: 50px;
             width: <?= $this->width; ?>px;
             margin-left: -<?= ceil($this->width/2); ?>px;
+            overflow: visible;
           }
 
           #bbbflyAppLoaderVersion {
