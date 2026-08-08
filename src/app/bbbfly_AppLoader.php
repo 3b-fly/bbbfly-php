@@ -298,11 +298,10 @@ class bbbfly_AppLoader
 <?php if($this->logoUrl){ ?>
           #bbbflyAppLoaderLogo {
             position: relative;
-            left: 50%;
+            left: <?= ceil(($this->width-$this->logoWidth)/2); ?>px;
             width: <?= $this->logoWidth; ?>px;
             height: <?= $this->logoHeight; ?>px;
             margin-bottom: <?= $this->logoGap; ?>px;
-            margin-left: -<?= ceil($this->logoWidth/2); ?>px;
           }
 <?php } ?>
         </style>
