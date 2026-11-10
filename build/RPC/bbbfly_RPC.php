@@ -260,8 +260,14 @@ abstract class bbbfly_RPC
 
   protected function decodePHPParam($param){
     if(is_string($param) && ($param !== '')){
-      $quotes = strtolower(ini_get('magic_quotes_gpc'));
-      if($quotes === 'on'){$param = stripslashes($param);}
+      $quotes = trim(strtolower(ini_get('magic_quotes_gpc')));
+
+      switch($quotes){
+        case '1':
+        case 'on':
+          $param = stripslashes($param);
+        break;
+      }
 
       if($this->paramsCharset !== $this->charset){
         if(extension_loaded('iconv')){
